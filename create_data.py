@@ -115,8 +115,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     if en == "Mountaincar":
         env = gym.make('MountainCar-v0')
         input_dim = env.observation_space.shape[0]
-        tmp_env._max_episode_steps = 1000 
-        num_act = 3 #TODO: These lines can be removed
+        env._max_episode_steps = 1000 
+        num_act = 3 #TODO: These lines can be replaced with env.action_space.n
     elif en == "Acrobot":
         env = gym.make('Acrobot-v1')
         input_dim = env.observation_space.shape[0]
