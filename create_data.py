@@ -17,7 +17,8 @@ import argparse
 # import datetime as date
 from datetime import datetime
 from replay_memory import ReplayBuffer
-from training3 import train_offline_online, train_online, train_offline_2, train_offline
+#from training3 import train_offline_online, train_online, train_offline_2, train_offline
+from training3 import train_offline_online, train_online, train_offline
 import training3
 np_load_old = np.load
 
@@ -59,7 +60,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     num_steps = num_step_ratio_mem  # 200000
 
     ## normolize states
-    def process_state(state, normalize=True):
+    def process_state(state, normalize=True): #FIXME: This doesn't need to be an inner function. Unnecessary loss of performance
         # states = np.array([state['position'], state['vel']])
         if normalize:
             if en == "Acrobot":
@@ -73,7 +74,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
             elif en == "LunarLander":
                 states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
                 mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
+                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0] #QSTN: why are we doing this to normalize the input. Is there any paper out there that does this? If so why? 
                 states[0] = (states[0] - mean[0]) / (deviation[0])
                 states[1] = (states[1] - mean[1]) / (deviation[1])
                 states[2] = (states[2] - mean[2]) / (deviation[2])
@@ -114,7 +115,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     if en == "Mountaincar":
         env = gym.make('MountainCar-v0')
         input_dim = env.observation_space.shape[0]
-        num_act = 3
+        tmp_env._max_episode_steps = 1000 
+        num_act = 3 #TODO: These lines can be removed
     elif en == "Acrobot":
         env = gym.make('Acrobot-v1')
         input_dim = env.observation_space.shape[0]
@@ -133,12 +135,14 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     #             rng=rand_seed)
 
 
-
+    ########## Setting the random seed ###########
     env.seed(rand_seed)
     T.manual_seed(rand_seed)
     np.random.seed(rand_seed)
+    ##############################################
 
 
+    ########### FIXME: This part should be put in seperate files like config files #############
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
@@ -179,14 +183,18 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                                     ("fqi_rep", [fqi_rep]),
                                     ])
 
+    #################################################################################################
+
     # files_name = "Data//Data_env_{}_mem_size_{}_date_{}_hyper_{}".format(en, mem_size, datetime.today().strftime(
     #                                                                                         "%d_%m_%Y"), hyper_num
     #                                                                                     )
 
-    files_name = "Data//{}_{}".format(en, mem_size)
+    files_name = os.path.join("Data", "{}_{}".format(en, mem_size)) #QSTN: Maybe using lower case letters for all of the directory names would be better because it's more consistent
+    # files_name = "Data//{}_{}".format(en, mem_size) #DELETE
 
     if rnd:
-        files_name = "Data//{}_rnd_{}".format(en, mem_size)
+        # files_name = "Data//{}_rnd_{}".format(en, mem_size)
+        files_name = os.path.join("Data", "{}_rnd_{}".format(en, mem_size)) # FIXME: This names is only based on the memory size and the environment, but we are going to sweep over different hyperparameters. So, we should add them to the naming
 
     if alg == 'fqi':
         log_file = files_name+str(alg)
@@ -199,7 +207,9 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     elif alg == "dqn":
         hyper_sets = hyper_sets_DQN
         TTN = False
-    #
+    
+    
+    ############# TODO: We can use this part to write a script that is able to generate experiments that should be run ########
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
 
@@ -233,11 +243,10 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
                               ])
+    
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
                               ("eps_decay_steps", hyper[1])])
-
-
 
     if TTN:
 
@@ -250,7 +259,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
         nn = DQNAgent(gamma, q_nnet_params, params, input_dims=input_dim)
 
 
-    def generate_data():
+    def generate_data(): # QSTN: Why this should be an inner function? we can put it in a seperate file.
 
         for rep in range(1):
 
