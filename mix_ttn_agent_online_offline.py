@@ -377,7 +377,7 @@ class TTNAgent_online_offline_mix(object):
 
 
     def learn_nn_feature(self, itr, shuffle_index):
-        print("learn features with NN")
+        # print("learn features with NN")
         if self.memory.mem_cntr < self.batch_size:
             return
 
@@ -450,7 +450,7 @@ class TTNAgent_online_offline_mix(object):
 
 
     def learn_nn_feature_fqi(self, itr, shuffle_index):
-        print("learn features with NN")
+        # print("learn features with NN")
         if self.memory.mem_cntr < self.batch_size:
             return
 
