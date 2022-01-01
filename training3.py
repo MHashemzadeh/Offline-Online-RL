@@ -2,7 +2,7 @@
 import numpy as np
 from dqn_agent import DQNAgent
 # from ttn_agent_online import TTNAgent_online
-from ttn_agent_online_tc import TTNAgent_online_tc
+#from ttn_agent_online_tc import TTNAgent_online_tc #TODO: You need to add this file to the git.
 from mix_ttn_agent_online_offline import TTNAgent_online_offline_mix
 # from utils import plot_learning_curve, make_env
 import os

@@ -267,6 +267,74 @@ class TTNAgent_online_offline_mix(object):
             # loss.backward()
             # self.q_eval.optimizer.step()
             # do update for q_next()
+            if self.loss_features == "ATC":
+                batch_size_cl = 32
+                augmentation_padding = 4
+                augmentation_prob = 0.1
+                delta = 3
+                target_update_interval = 1
+                ul_target_update_tau = 0.01
+
+                ########### Computing the contrastive loss ###########
+                # Currently it is implemented only with a single environment in mind and one repetition
+                #print('Calculating CL loss')
+                self.ul_optimizer.zero_grad()
+                states, actions, rewards, next_states, _, terminals = self.sample_buffer_nextaction_consequtive(batch_size_cl)
+                #print(terminals)
+                states = self.cfg.state_normalizer(states)
+                anchor = states[:-self.ul_delta_T]
+                positive = states[self.ul_delta_T:]
+
+                #print('anchor: ', anchor.shape)        
+                #print('positive: ', positive.shape)
+                #print(self.ul_random_shift_prob)
+                #print(self.ul_random_shift_pad)
+                if self.ul_random_shift_prob > 0.:
+
+                    anchor = random_shift(
+                        imgs=anchor,
+                        pad=self.ul_random_shift_pad,
+                        prob=self.ul_random_shift_prob,
+                    )
+
+                    positive = random_shift(
+                        imgs=positive,
+                        pad=self.ul_random_shift_pad,
+                        prob=self.ul_random_shift_prob,
+                    )
+            #anchor, positive = buffer_to((anchor, positive),
+            #    device=self.agent.device)
+                with torch.no_grad():
+                    c_positive = self.ul_target_encoder(positive)
+                c_anchor = self.ul_encoder(anchor)
+                logits = self.ul_contrast(c_anchor, c_positive)  # anchor mlp in here.
+
+                labels = torch.arange(c_anchor.shape[0],
+                    dtype=torch.long, device=self.device)
+                terminals = torch_utils.tensor(terminals, self.device)
+                valid = valid_from_done(terminals).type(torch.bool)  # use all
+                valid = valid[self.ul_delta_T:].reshape(-1)  # at positions of positive
+                labels[~valid] = IGNORE_INDEX
+
+                ul_loss = self.ul_weight * self.c_e_loss(logits, labels)
+                ul_loss.backward()
+                if self.ul_clip_grad_norm is None:
+                    grad_norm = 0.
+                else:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        self.ul_parameters(), self.ul_clip_grad_norm)
+                self.ul_optimizer.step()
+
+                correct = torch.argmax(logits.detach(), dim=1) == labels
+                accuracy = torch.mean(correct[valid].float())
+                
+                if self.total_steps % self.ul_target_update_interval == 0:
+                    update_state_dict(self.ul_target_encoder, self.ul_encoder.state_dict(),
+                        self.ul_target_update_tau)
+                    #
+                    # loss.backward()
+                    # self.q_eval.optimizer.step()
+                    # do update for q_next()
 
         # for FQI:
         if (self.learn_step_counter + 2) % self.update_freq == 0:
@@ -375,6 +443,7 @@ class TTNAgent_online_offline_mix(object):
 
         return loss
 
+        
 
     def learn_nn_feature(self, itr, shuffle_index):
         print("learn features with NN")
