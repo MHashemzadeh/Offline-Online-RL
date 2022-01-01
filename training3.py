@@ -33,7 +33,7 @@ from replay_memory import ReplayBuffer
 #     import gym
 
 ######################################################
-def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_rep_num, num_step_ratio_mem, en,
+def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_rep_num, num_step_ratio_mem, en,
           feature, method_sarsa,num_epi_per_itr,
                          fqi_reg_type, initial_batch, rnd, status):
 
@@ -151,6 +151,13 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
+
+                    # Data Augmentation Params
+                   "data_aug_type": 'ras',
+                   "data_aug_prob": 0.0,
+                   "random_shift_pad": 4,
+                   "ras_alpha": 0.6,
+                   "ras_beta": 1.2
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
@@ -212,7 +219,7 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
 
 
 
-    saved_state_list_all = np.load(starting_state_path)  # np.load starting states
+    # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -249,7 +256,7 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
         with open(log_file + ".txt", 'w') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
 
-        saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
+        # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
 
         #############################################
         start_run_time = time.perf_counter()
@@ -489,7 +496,7 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
 
 
 ######################################################
-def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, data_length_num, mem_size, num_rep, offline,
+def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_rep, offline,
                  fqi_rep_num, num_step_ratio_mem, en,
                  feature, method_sarsa, num_epi_per_itr,
                  fqi_reg_type, initial_batch, rnd, num_updates_pretrain, epsilon_stop_training, status):
@@ -601,6 +608,12 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
+                    # Data Augmentation Params
+                   "data_aug_type": 'ras',
+                   "data_aug_prob": 0.0,
+                   "random_shift_pad": 4,
+                   "ras_alpha": 0.6,
+                   "ras_beta": 1.2
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
@@ -660,7 +673,7 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
         params = OrderedDict([("nn_lr", hyper[0]),
                               ("eps_decay_steps", hyper[1])])
 
-    saved_state_list_all = np.load(starting_state_path)  # np.load starting states
+    # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -697,7 +710,7 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
         with open(log_file + ".txt", 'w') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
 
-        saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
+        # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
 
         #############################################
         start_run_time = time.perf_counter()
@@ -802,11 +815,11 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
 
                         if TTN:
                             loss = nn.learn_nn_feature_fqi(itr, shuffle_index)
-                            print(loss)
+                            # print(loss)
 
                         else:
                             loss = nn.learn_nn_feature(itr, shuffle_index)
-                            print(loss)
+                            # print(loss)
 
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}".format(alg,
@@ -992,7 +1005,7 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
     np.save(files_name + 'hyperparam_final_stdepisodes', np.std(hyperparam_episodes, axis=0))
 
 
-def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_length_num, mem_size, num_rep, offline,
+def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_rep, offline,
                  fqi_rep_num, num_step_ratio_mem, en,
                  feature, method_sarsa, num_epi_per_itr,
                  fqi_reg_type, initial_batch, rnd, num_updates_pretrain, epsilon_stop_training, status):
@@ -1091,7 +1104,15 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
                      "batch_size": 32,  # TODO try big batches
                      "replay_memory_size": mem_size,
                      "replay_init_size": 5000,
-                     "update_target_net_steps": 1000
+                     "update_target_net_steps": 1000,
+
+
+                    # Data Augmentation Params
+                   "data_aug_type": 'ras',
+                   "data_aug_prob": 0.0,
+                   "random_shift_pad": 4,
+                   "ras_alpha": 0.6,
+                   "ras_beta": 1.2
                      }
 
     ## TTN
@@ -1105,6 +1126,13 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
+
+                    # Data Augmentation Params
+                   "data_aug_type": 'ras',
+                   "data_aug_prob": 0.0,
+                   "random_shift_pad": 4,
+                   "ras_alpha": 0.6,
+                   "ras_beta": 1.2
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
@@ -1165,7 +1193,7 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
         params = OrderedDict([("nn_lr", hyper[0]),
                               ("eps_decay_steps", hyper[1])])
 
-    saved_state_list_all = np.load(starting_state_path)  # np.load starting states
+    # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -1202,7 +1230,7 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
         with open(log_file + ".txt", 'w') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
 
-        saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
+        # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
 
         #############################################
         start_run_time = time.perf_counter()
@@ -1306,11 +1334,11 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
 
                         if TTN:
                             loss = nn.learn_nn_feature_fqi(itr, shuffle_index)
-                            print(loss)
+                            # print(loss)
 
                         else:
                             loss = nn.learn_nn_feature(itr, shuffle_index)
-                            print(loss)
+                            # print(loss)
 
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,

@@ -4,6 +4,7 @@ from TTN_network import TTNNetwork
 from replay_memory import ReplayBuffer
 import torch
 from torch.autograd import Variable
+from utils.data_augs import *
 # from sklearn.linear_model import Ridge
 from tc.utils.tiles3 import *
 # from numba import jit
@@ -13,7 +14,7 @@ from tc.utils.tiles3 import *
 class TTNAgent_online_offline_mix(object):
     def __init__(self, gamma, nnet_params, other_params, input_dims=4, num_units_rep=128, dir=None, offline=False,
                  num_tiling=16, num_tile=4, method_sarsa='expected-sarsa', tilecoding=1, replace_target_cnt=1000,
-                 target_separate=False, status="online"):
+                 target_separate=False, status="online", data_aug_prob=""):
         # gamma, loss_features, beta1, beta2, eps_init, eps_final, num_actions, replay_memory_size, replay_init_size, pretrain_rep_steps, freeze_rep,batch_size, fqi_reg_type, nn_lr, reg_A, eps_decay_steps, update_freq, input_dims, num_units_rep,
         # env_name='cacher', chkpt_dir='tmp/dqn'):
         self.gamma = gamma
@@ -27,6 +28,15 @@ class TTNAgent_online_offline_mix(object):
         self.n_actions = nnet_params['num_actions']
         self.batch_size = nnet_params['batch_size']
         self.fqi_reg_type = nnet_params['fqi_reg_type']
+
+        ##### Data Augmentation Params #####
+        self.ras_alpha = nnet_params['ras_alpha']
+        self.ras_beta = nnet_params['ras_beta']
+        self.data_aug_type = nnet_params['data_aug_type']
+        self.data_aug_prob = nnet_params['data_aug_prob']
+        self.data_aug_pad = nnet_params['random_shift_pad']
+
+        
         self.lr = other_params['nn_lr']
         self.reg_A = other_params['reg_A']
         self.data_length = other_params['data_length']
@@ -216,6 +226,25 @@ class TTNAgent_online_offline_mix(object):
 
             states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction()
             indices = np.arange(self.batch_size)
+
+
+            #### Data Augmentation #####
+            if self.data_aug_prob > 0.:
+                print('augmenting data')
+                if self.data_aug_type == 'random_shift':
+
+                    states = random_shift(states, pad=self.random_shift_pad, p=self.data_aug_prob)
+                    states_ = random_shift(states_, pad=self.random_shift_pad, p=self.data_aug_prob) 
+
+                elif self.data_aug_type == 'ras':
+
+                    states = random_amplitude_scaling(states, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                        prob=self.data_aug_prob, multivariate=False)
+
+                    states_ = random_amplitude_scaling(states_, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                        prob=self.data_aug_prob, multivariate=False) 
+                else:
+                    raise ValueError('Data Augmentation type is not valid: ', data_aug_type)                                                       
 
             # q_pred = self.q_eval.forward(states)[indices, actions]
             q_pred_all, features_all, pred_states_all = self.q_eval.forward(states)
@@ -446,7 +475,7 @@ class TTNAgent_online_offline_mix(object):
         
 
     def learn_nn_feature(self, itr, shuffle_index):
-        print("learn features with NN")
+        # print("learn features with NN")
         if self.memory.mem_cntr < self.batch_size:
             return
 
@@ -519,7 +548,7 @@ class TTNAgent_online_offline_mix(object):
 
 
     def learn_nn_feature_fqi(self, itr, shuffle_index):
-        print("learn features with NN")
+        # print("learn features with NN")
         if self.memory.mem_cntr < self.batch_size:
             return
 

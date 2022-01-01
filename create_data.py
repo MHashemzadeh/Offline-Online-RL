@@ -17,7 +17,7 @@ import argparse
 # import datetime as date
 from datetime import datetime
 from replay_memory import ReplayBuffer
-#from training3 import train_offline_online, train_online, train_offline_2, train_offline
+#from training3 import train_offline_online, train_online, train_offline
 from training3 import train_offline_online, train_online, train_offline
 import training3
 np_load_old = np.load
@@ -162,7 +162,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     ## TTN
     nnet_params = {"loss_features": 'semi_MSTDE',  # "next_reward_state", next_state, semi_MSTDE
-                   "beta1": 0.0,
+                   "beta1": 0.0, # QSTN: This is odd choice! Why did we made this choice?
                    "beta2": 0.99,
                    "eps_init": 1.0,
                    "eps_final": 0.01,
@@ -171,6 +171,13 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": "prev",  # "l2" or "prev"
+
+                    # Data Augmentation Params
+                   "data_aug_type": 'ras',
+                   "data_aug_prob": 0.0,
+                   "random_shift_pad": 4,
+                   "ras_alpha": 0.6,
+                   "ras_beta": 1.2
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
@@ -349,6 +356,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                     else:
                         print(episodes, ij, round(val, 2), round(ret, 2), round(np.mean(run_returns[-100:]), 3), np.mean(run_returns),
                               episode_length)
+
                     # avg_returns.append(np.mean(all_returns[-100:]))
                     print("episode length is:", episode_length, "return is:", ret)
                     val = 0.0
@@ -465,7 +473,7 @@ if __name__ == "__main__":
     parser.add_argument('--algo', type=str, default='fqi')
     parser.add_argument('--hyper_num', type=int, default=15)
     parser.add_argument('--data_length_num', type=int, default=0)
-    parser.add_argument('--mem_size', type=int, default=50000)
+    parser.add_argument('--mem_size', type=int, default=10000)
     parser.add_argument('--num_rep', type=int, default=1)
     parser.add_argument('--offline', type=bool, default=False)
     parser.add_argument('--fqi_rep_num', type=int, default=0)
@@ -485,14 +493,14 @@ if __name__ == "__main__":
 
     parser.add_argument('--data_dir', type=str, default=None)  # direction for the batch data
     parser.add_argument('--featurepath', type=str, default=None)  # direction for the features
-    parser.add_argument('--starting_state_path', type=str, default=None)  # direction for the starting_state_path
+    # parser.add_argument('--starting_state_path', type=str, default=None)  # direction for the starting_state_path if we can add it if we want to fix the starting states!
     parser.add_argument('--learning_feat', type=bool, default=False)
 
 
     ##########################################################
     ##########################################################
 
-    parser.add_argument('--offline_online_training', type=str, default=None)  # set type of your validation: offline or online or offline_online
+    parser.add_argument('--offline_online_training', type=str, default="offline_online")  # set type of your validation: offline or online or offline_online
 
     ############################################################
     ############################################################
@@ -522,8 +530,8 @@ if __name__ == "__main__":
 
     if args.data_dir == None:
 
-
-        args.data_dir, args.featurepath, args.starting_state_path = main(args.algo, args.hyper_num, args.data_length_num, args.mem_size, args.num_rep, args.offline, args.fqi_rep_num,
+        # args.data_dir, args.featurepath, args.starting_state_path
+        args.data_dir = main(args.algo, args.hyper_num, args.data_length_num, args.mem_size, args.num_rep, args.offline, args.fqi_rep_num,
          args.num_step_ratio_mem, args.en, args.dirfeature, args.feature, args.num_epoch,args.batch_size, args.replace_target_cnt, args.target_separate,
          args.method_sarsa, args.data_dir, args.learning_feat)
 
@@ -554,7 +562,7 @@ if __name__ == "__main__":
             args.tr_offline = True
             args.tr_initial_batch = True
 
-            train_offline_online(args.data_dir, args.starting_state_path, args.tr_alg_type, args.tr_hyper_num,
+            train_offline_online(args.data_dir,  args.tr_alg_type, args.tr_hyper_num,
                          args.tr_data_length_num, args.mem_size, args.tr_num_rep,
                          args.tr_offline, args.tr_fqi_rep_num,
                          args.tr_num_step_ratio_mem, args.en,
@@ -566,7 +574,7 @@ if __name__ == "__main__":
             args.tr_offline = True
             args.tr_initial_batch = True
 
-            train_offline(args.data_dir, args.starting_state_path, args.tr_alg_type, args.tr_hyper_num,
+            train_offline(args.data_dir,  args.tr_alg_type, args.tr_hyper_num,
                                    args.tr_data_length_num, args.mem_size, args.tr_num_rep,
                                    args.tr_offline, args.tr_fqi_rep_num,
                                    args.tr_num_step_ratio_mem, args.en,
@@ -577,7 +585,7 @@ if __name__ == "__main__":
         elif args.offline_online_training == 'online':
             # args.tr_offline = False
             # args.tr_initial_batch = False
-            train_online(args.data_dir, args.starting_state_path, args.tr_alg_type, args.tr_hyper_num, args.tr_data_length_num, args.mem_size, args.tr_num_rep,
+            train_online(args.data_dir,  args.tr_alg_type, args.tr_hyper_num, args.tr_data_length_num, args.mem_size, args.tr_num_rep,
                                  args.tr_offline, args.tr_fqi_rep_num,
                              args.tr_num_step_ratio_mem, args.en,
                              args.tr_feature, args.tr_method_sarsa, args.tr_num_epi_per_itr,
