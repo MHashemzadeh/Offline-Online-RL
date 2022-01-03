@@ -500,7 +500,7 @@ if __name__ == "__main__":
     ##########################################################
     ##########################################################
 
-    parser.add_argument('--offline_online_training', type=str, default="offline_online")  # set type of your validation: offline or online or offline_online
+    parser.add_argument('--offline_online_training', type=str, default=None)  # set type of your validation: offline or online or offline_online
 
     ############################################################
     ############################################################

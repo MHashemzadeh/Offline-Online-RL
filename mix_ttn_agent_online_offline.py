@@ -215,6 +215,8 @@ class TTNAgent_online_offline_mix(object):
         if self.memory.mem_cntr < self.batch_size:
             return
 
+
+        #Representation learning part, i.e., Q-value learning
         for mmm in range(1):
 
             # self.learn_step_counter += 1
@@ -244,7 +246,7 @@ class TTNAgent_online_offline_mix(object):
                     states_ = random_amplitude_scaling(states_, alpha=self.ras_alpha, beta=self.ras_beta, 
                                                         prob=self.data_aug_prob, multivariate=False) 
                 else:
-                    raise ValueError('Data Augmentation type is not valid: ', data_aug_type)                                                       
+                    raise ValueError('Data Augmentation type is not valid: ', self.data_aug_type)                                                       
 
             # q_pred = self.q_eval.forward(states)[indices, actions]
             q_pred_all, features_all, pred_states_all = self.q_eval.forward(states)
@@ -405,30 +407,28 @@ class TTNAgent_online_offline_mix(object):
                     # self.lin_values = T.mm(features, self.lin_weights)
 
                     q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(states_all_ch_)
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     maxlinq[dones_all_ch] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
                     expectedsarsa[dones_all_ch] = 0
 
                     targets = rewards_all_ch + self.gamma * maxlinq
                     # targets = rewards_all_ch + self.gamma * expectedsarsa
 
                     _, features_allmem, _ = self.q_eval.forward(states_all_ch)
-                    features_allmem_bias = T.cat(
-                        (features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
-                    feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions,
-                                             features_allmem_bias.shape[1]).to(self.q_eval.device)
+                    feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions, features_allmem_bias.shape[1]).to(self.q_eval.device)
 
                     # for i in range(features_allmem_bias.shape[0]):
                     #     feats_current[i, actions_all_ch[i], :] = features_allmem_bias[i, :]
 
-                    features_allmem_bias_re = T.reshape(features_allmem_bias, (
-                    features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                    features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                    
                     actions_all_re1 = T.reshape(actions_all_ch, (actions_all_ch.shape[0], 1, 1))
                     actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
                     feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
