@@ -19,6 +19,8 @@ import argparse
 # import datetime as date
 from datetime import datetime
 from replay_memory import ReplayBuffer
+from utils.env_utils import process_state_constructor
+from envs.env_constructor import get_env
 
 # np_load_old = np.load
 
@@ -57,72 +59,15 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     num_steps = num_step_ratio_mem  # 200000
 
     ## select environment
-    if en == "Mountaincar":
-        env = gym.make('MountainCar-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "Acrobot":
-        env = gym.make('Acrobot-v1')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "LunarLander":
-        env = gym.make('LunarLander-v2')
-        input_dim = env.observation_space.shape[0]
-        num_act = 4
-    elif en == "cartpole":
-        env = gym.make('CartPole-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 2
+    env, input_dim, num_act = get_env(en)
 
-    # rand_seed = num_rep * 32  # 332
-    # env.seed(rand_seed)
+    ### Normalize State
+    process_state = process_state_constructor(en)
+
+    # rand_seed = num_rep * 32  # 332 #TODO: T
+    # env.seed(rand_seed) 
     # T.manual_seed(rand_seed)
     # np.random.seed(rand_seed)
-
-    ## normolize states
-    def process_state(state, normalize=True):
-        # states = np.array([state['position'], state['vel']])
-
-        if normalize:
-            if en == "Acrobot":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
-                states[0] = (states[0] + 1) / (2)
-                states[1] = (states[1] + 1) / (2)
-                states[2] = (states[2] + 1) / (2)
-                states[3] = (states[3] + 1) / (2)
-                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
-                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
-            elif en == "LunarLander":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
-                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
-                states[0] = (states[0] - mean[0]) / (deviation[0])
-                states[1] = (states[1] - mean[1]) / (deviation[1])
-                states[2] = (states[2] - mean[2]) / (deviation[2])
-                states[3] = (states[3] - mean[3]) / (deviation[3])
-                states[4] = (states[4] - mean[4]) / (deviation[4])
-                states[5] = (states[5] - mean[5]) / (deviation[5])
-
-            elif en == "cartpole":
-                states = np.array([state[0], state[1], state[2], state[3]])
-                states[0] = states[0]
-                states[1] = states[1]
-                states[2] = states[2]
-                states[3] = states[3]
-
-            elif en == "Mountaincar":
-                states = np.array([state[0], state[1]])
-                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
-                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
-
-            elif en == "catcher":
-                states = np.array([state['player_x'], state['player_vel'], state['fruit_x'], state['fruit_y']])
-                states[0] = (states[0] - 25.5) / 26
-                states[1] = states[1] / 10
-                states[2] = (states[2] - 30) / 22
-                states[3] = (states[3] - 18.5) / 47
-
-        return states
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
@@ -159,6 +104,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                    "ras_alpha": 0.6,
                    "ras_beta": 1.2
                    }
+
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A",
@@ -521,65 +467,15 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     num_steps = num_step_ratio_mem  # 200000
 
     ## select environment
-    if en == "Mountaincar":
-        env = gym.make('MountainCar-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "Acrobot":
-        env = gym.make('Acrobot-v1')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "LunarLander":
-        env = gym.make('LunarLander-v2')
-        input_dim = env.observation_space.shape[0]
-        num_act = 4
-    elif en == "cartpole":
-        env = gym.make('CartPole-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 2
+    env, input_dim, num_act = get_env(en)
+
+    ### Normalize State
+    process_state = process_state_constructor(en)
 
     # rand_seed = num_rep * 32  # 332
     # env.seed(rand_seed)
     # T.manual_seed(rand_seed)
     # np.random.seed(rand_seed)
-
-    ## normolize states
-    def process_state(state, normalize=True):
-        # states = np.array([state['position'], state['vel']])
-
-        if normalize:
-            if en == "Acrobot":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
-                states[0] = (states[0] + 1) / (2)
-                states[1] = (states[1] + 1) / (2)
-                states[2] = (states[2] + 1) / (2)
-                states[3] = (states[3] + 1) / (2)
-                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
-                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
-            elif en == "LunarLander":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
-                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
-                states[0] = (states[0] - mean[0]) / (deviation[0])
-                states[1] = (states[1] - mean[1]) / (deviation[1])
-                states[2] = (states[2] - mean[2]) / (deviation[2])
-                states[3] = (states[3] - mean[3]) / (deviation[3])
-                states[4] = (states[4] - mean[4]) / (deviation[4])
-                states[5] = (states[5] - mean[5]) / (deviation[5])
-
-            elif en == "cartpole":
-                states = np.array([state[0], state[1], state[2], state[3]])
-                states[0] = states[0]
-                states[1] = states[1]
-                states[2] = states[2]
-                states[3] = states[3]
-
-            elif en == "Mountaincar":
-                states = np.array([state[0], state[1]])
-                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
-                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
-
-        return states
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
@@ -1031,65 +927,15 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     num_steps = num_step_ratio_mem  # 200000
 
     ## select environment
-    if en == "Mountaincar":
-        env = gym.make('MountainCar-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "Acrobot":
-        env = gym.make('Acrobot-v1')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "LunarLander":
-        env = gym.make('LunarLander-v2')
-        input_dim = env.observation_space.shape[0]
-        num_act = 4
-    elif en == "cartpole":
-        env = gym.make('CartPole-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 2
+    env, input_dim, num_act = get_env(en)
 
+    ### Normalize State
+    process_state = process_state_constructor(en)
+    
     # rand_seed = num_rep * 32  # 332
     # env.seed(rand_seed)
     # T.manual_seed(rand_seed)
     # np.random.seed(rand_seed)
-
-    ## normolize states
-    def process_state(state, normalize=True):
-        # states = np.array([state['position'], state['vel']])
-
-        if normalize:
-            if en == "Acrobot":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
-                states[0] = (states[0] + 1) / (2)
-                states[1] = (states[1] + 1) / (2)
-                states[2] = (states[2] + 1) / (2)
-                states[3] = (states[3] + 1) / (2)
-                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
-                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
-            elif en == "LunarLander":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
-                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
-                states[0] = (states[0] - mean[0]) / (deviation[0])
-                states[1] = (states[1] - mean[1]) / (deviation[1])
-                states[2] = (states[2] - mean[2]) / (deviation[2])
-                states[3] = (states[3] - mean[3]) / (deviation[3])
-                states[4] = (states[4] - mean[4]) / (deviation[4])
-                states[5] = (states[5] - mean[5]) / (deviation[5])
-
-            elif en == "cartpole":
-                states = np.array([state[0], state[1], state[2], state[3]])
-                states[0] = states[0]
-                states[1] = states[1]
-                states[2] = states[2]
-                states[3] = states[3]
-
-            elif en == "Mountaincar":
-                states = np.array([state[0], state[1]])
-                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
-                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
-
-        return states
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
