@@ -102,34 +102,92 @@ class TTNNetwork(nn.Module):
         self.load_state_dict(T.load(self.checkpoint_file))
 
 
+class TTNNetworkMaze(nn.Module):
+    def __init__(self, beta1, beta2, lr, n_actions, input_dims, num_units_rep, chkpt_dir='checkpoint_files/', file_name='ttn_network_maze'):
+        super(TTNNetworkMaze, self).__init__()
+        self.checkpoint_dir = chkpt_dir
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, file_name)
+        rep_output_dim = 400 # Precalculated
+
+        self.representation = nn.Sequential(
+            nn.Conv2d(input_dims[0], 32, 4, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 16, 4, stride=2),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(rep_output_dim, num_units_rep),
+            nn.ReLU(),
+        )
+
+        self.value_func = nn.Sequential(
+            nn.Linear(num_units_rep, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, n_actions)
+        )
+
+        self.value_func.apply(self.init_weights)
+        # print(fc_input_dims)
+
+        # self.fc1 = nn.Linear(fc_input_dims, 32)
+        # self.fc2 = nn.Linear(512, n_actions)
+
+        self.optimizer = optim.Adam(self.parameters(), lr=lr, betas=(beta1, beta2), eps=1e-08, weight_decay=0, amsgrad=True)
+
+        self.loss = nn.MSELoss()
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.to(self.device)
+
+    def init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform(m.weight)
+            m.bias.data.fill_(0.)
+
+    def forward(self, state):
+        representation = self.representation(state)
+        self.predictions = self.value_func(representation)
+        self.pred_states = None # TODO: I'm not sure this would be a wise choice here
+        return self.predictions, representation, self.pred_states
+
+    def save_checkpoint(self):
+        print('... saving checkpoint ...')
+        T.save(self.state_dict(), self.checkpoint_file)
+
+    def load_checkpoint(self):
+        print('... loading checkpoint ...')
+        self.load_state_dict(T.load(self.checkpoint_file))
+
+
+
 # class TTNNetwork_image(nn.Module):
 #     def __init__(self, lr, n_actions, name, input_dims, chkpt_dir):
 #         super(TTNNetwork_image, self).__init__()
 #         self.checkpoint_dir = chkpt_dir
 #         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
-#
+
 #         self.conv1 = nn.Conv2d(input_dims[0], 32, 8, stride=4)
 #         self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
 #         self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
-#
+
 #         fc_input_dims = self.calculate_conv_output_dims(input_dims)
-#
+
 #         self.fc1 = nn.Linear(fc_input_dims, 512)
 #         self.fc2 = nn.Linear(512, n_actions)
-#
+
 #         self.optimizer = optim.RMSprop(self.parameters(), lr=lr)
-#
+
 #         self.loss = nn.MSELoss()
 #         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 #         self.to(self.device)
-#
+
 #     def calculate_conv_output_dims(self, input_dims):
 #         state = T.zeros(1, *input_dims)
 #         dims = self.conv1(state)
 #         dims = self.conv2(dims)
 #         dims = self.conv3(dims)
 #         return int(np.prod(dims.size()))
-#
+
 #     def forward(self, state):
 #         conv1 = F.relu(self.conv1(state))
 #         conv2 = F.relu(self.conv2(conv1))
@@ -139,13 +197,13 @@ class TTNNetwork(nn.Module):
 #         # conv_state shape is BS x (n_filters * H * W)
 #         flat1 = F.relu(self.fc1(conv_state))
 #         actions = self.fc2(flat1)
-#
+
 #         return actions
-#
+
 #     def save_checkpoint(self):
 #         print('... saving checkpoint ...')
 #         T.save(self.state_dict(), self.checkpoint_file)
-#
+
 #     def load_checkpoint(self):
 #         print('... loading checkpoint ...')
 #         self.load_state_dict(T.load(self.checkpoint_file))

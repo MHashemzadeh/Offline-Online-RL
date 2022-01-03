@@ -1,12 +1,14 @@
 import numpy as np
 import torch as T
-from TTN_network import TTNNetwork
+from TTN_network import TTNNetwork, TTNNetworkMaze
 from replay_memory import ReplayBuffer
 import torch
 from torch.autograd import Variable
 from utils.data_augs import *
 # from sklearn.linear_model import Ridge
 from tc.utils.tiles3 import *
+import warnings
+
 # from numba import jit
 # import nvidia_smi
 
@@ -30,13 +32,12 @@ class TTNAgent_online_offline_mix(object):
         self.fqi_reg_type = nnet_params['fqi_reg_type']
 
         ##### Data Augmentation Params #####
-        self.ras_alpha = nnet_params['ras_alpha']
-        self.ras_beta = nnet_params['ras_beta']
-        self.data_aug_type = nnet_params['data_aug_type']
-        self.data_aug_prob = nnet_params['data_aug_prob']
-        self.data_aug_pad = nnet_params['random_shift_pad']
+        self.ras_alpha = nnet_params['ras_alpha'] # The minimum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
+        self.ras_beta = nnet_params['ras_beta'] # The maximum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
+        self.data_aug_type = nnet_params['data_aug_type'] # The type of data augmentation that we are going to use: random_shift (for visual inputs), rsa (for others)
+        self.data_aug_prob = nnet_params['data_aug_prob'] # The probability of data getting augmented
+        self.data_aug_pad = nnet_params['random_shift_pad'] # The number of pixels that will be padded for random shift technique. 4 usually works fine for this so there is no need to tune it
 
-        
         self.lr = other_params['nn_lr']
         self.reg_A = other_params['reg_A']
         self.data_length = other_params['data_length']
@@ -58,14 +59,21 @@ class TTNAgent_online_offline_mix(object):
         self.min = 100
         self.num_tiles = num_tile
         self.num_tilings = num_tiling
-        self.hash_num = (self.num_tiles ** self.input_dims) * self.num_tilings
-        self.iht = IHT(self.hash_num)
-        self.status = status
 
-        if self.input_dims == 4:
-            self.obs_limits = [[-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0]]
+        if isinstance(self.input_dims, int): 
+            self.hash_num = (self.num_tiles ** self.input_dims) * self.num_tilings
+            self.iht = IHT(self.hash_num)
         else:
-            self.obs_limits = [[-1.2, 0.6, 1.8], [-0.07, 0.07, 0.14]]
+            warnings.warn('Tile coding is not defined for visual inputs!')
+            
+        self.status = status
+        if isinstance(self.input_dims, int): 
+            if self.input_dims == 4:
+                self.obs_limits = [[-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0]]
+            else:
+                self.obs_limits = [[-1.2, 0.6, 1.8], [-0.07, 0.07, 0.14]]
+        else:
+            warnings.warn('Tile coding is not defined for visual inputs!')
 
         self.update_feature = False
         self.method = method_sarsa
@@ -75,17 +83,29 @@ class TTNAgent_online_offline_mix(object):
 
         self.memory = ReplayBuffer(nnet_params['replay_memory_size'], input_dims, nnet_params['num_actions'],
                                    self.offline, self.memory_load_direction)
+
         # self.memory = self.assign_memory(nnet_params['replay_memory_size'], nnet_params['num_actions'])
         # self.q_eval,self.features, self.pred_states
+        if isinstance(self.input_dims, int): 
+            self.q_eval = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims,
+                                    number_unit=self.number_unit,
+                                    num_units_rep=self.num_units_rep)
 
-        self.q_eval = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
-                                 input_dims=self.input_dims,
-                                 number_unit=self.number_unit,
-                                 num_units_rep=self.num_units_rep)
-        self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
-                                 input_dims=self.input_dims,
-                                 number_unit=self.number_unit,
-                                 num_units_rep=self.num_units_rep)
+            self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims,
+                                    number_unit=self.number_unit,
+                                    num_units_rep=self.num_units_rep)
+        elif len(self.input_dims) == 3: #TODO: this part needs to be just for maze so maybe we have to add the environment as part of this class input. This part should be modified for minatar
+            self.q_eval = TTNNetworkMaze(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims, num_units_rep=self.num_units_rep)
+
+            self.q_next = TTNNetworkMaze(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims, num_units_rep=self.num_units_rep)            
+        else:
+            raise ValueError('Tile coding is not defined for this specifc input shape: {}'.format(self.input_dims))
+
+
         # self.q_next, self.features_next, self.pred_states_next
         # self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
         #                             input_dims=self.input_dims,
@@ -93,6 +113,8 @@ class TTNAgent_online_offline_mix(object):
         #                             chkpt_dir=self.chkpt_dir, number_unit=128, num_units_rep=self.num_units_rep)
 
         if self.tilecoding:
+            if not isinstance(self.input_dims, int):
+                raise ValueError('Tile coding cannot be used for visual inputs.')
             self.num_fe = self.hash_num + 1
         else:
             self.num_fe = self.num_units_rep + 1

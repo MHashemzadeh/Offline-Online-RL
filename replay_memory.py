@@ -13,14 +13,20 @@ class ReplayBuffer(object):
         self.uniform = uniform
         self.input_shape = input_shape
 
+        if isinstance(input_shape, int):
+            state_mem_shape = (self.mem_size, input_shape)
+        else:
+            state_mem_shape = (self.mem_size,) + input_shape
+
         if offline == False:
-            self.state_memory = T.zeros((self.mem_size, input_shape),  dtype=T.float32)
-            self.new_state_memory = T.zeros((self.mem_size, input_shape), dtype=T.float32)
+            self.state_memory = T.zeros(state_mem_shape,  dtype=T.float32)
+            self.new_state_memory = T.zeros(state_mem_shape, dtype=T.float32)
             self.action_memory = T.zeros(self.mem_size, dtype=T.int64)
             self.new_action_memory = T.zeros(self.mem_size, dtype=T.int64)
             self.reward_memory = T.zeros(self.mem_size, dtype=T.float32)
             self.terminal_memory = T.zeros(self.mem_size, dtype=T.bool)
             self.mem_cntr = 0
+
         elif uniform == True:
             # load offline data
             print("load offline data Uniform!!!!!")
