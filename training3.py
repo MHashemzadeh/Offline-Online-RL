@@ -907,24 +907,24 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                  fqi_reg_type, initial_batch, rnd, num_updates_pretrain, epsilon_stop_training, status):
 
 
-    print("offline", hyper_num, en, mem_size)
+    print("offline", hyper_num, en, mem_size) #mem)_size default in offline experiment is 10K 
 
     data_lengths = [mem_size, 6000, 10000, 20000, 30000]
-    data_length = data_lengths[data_length_num]
+    data_length = data_lengths[data_length_num] #data_length_num default = 0 ; data_length = mem_size
 
     fqi_reps = [1, 10, 50, 100, 300]
-    fqi_rep = fqi_reps[fqi_rep_num]
+    fqi_rep = fqi_reps[fqi_rep_num] #default fqi_rep_num = 0 ; fqi_reps = 1 ; number of fqi repeats
 
     if feature == 'tc':
         tilecoding = 1
     else:
         tilecoding = 0
 
-    alg = alg_type
+    alg = alg_type #fqi
 
     gamma = 0.99
 
-    num_steps = num_step_ratio_mem  # 200000
+    num_steps = num_step_ratio_mem  # 70K for offline default
 
     ## select environment
     env, input_dim, num_act = get_env(en)
@@ -1035,6 +1035,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               ("fqi_rep", hyper[5]),
                               ])
 
+        print(f"Parameters: {params}")
+
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
                               ("eps_decay_steps", hyper[1])])
@@ -1073,7 +1075,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
-        with open(log_file + ".txt", 'w') as f:
+        with open(log_file + ".txt", 'a') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
 
         # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
@@ -1170,6 +1172,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                 #     loss1= loss
                 #     t += 1
 
+                # How do you control number of fqi updates in pre-train offline?
+
                 batch_size = 64
                 for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
                     num_iteration_feature = int(mem_size / batch_size)
@@ -1257,6 +1261,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                           "avegar over 10 episode:", round(np.mean(run_avgreturns), 3),
                           "avegare return across last 100 episodes:", round(np.mean(run_returns[-100:]), 3),
                           "state values:", (q_values_episode / episode_length), episode_length)
+
+                    with open(log_file + ".txt", 'a') as f:
+                        print(episodes, i, round(val, 2), ret, "number episode from 10:", count_10epi,
+                          "avegar over 10 episode:", round(np.mean(run_avgreturns), 3),
+                          "avegare return across last 100 episodes:", round(np.mean(run_returns[-100:]), 3),
+                          "state values:", (q_values_episode / episode_length), episode_length, file=f)
 
 
 

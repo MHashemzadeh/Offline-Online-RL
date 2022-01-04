@@ -3,7 +3,6 @@ import numpy as np
 from dqn_agent import DQNAgent
 # from ttn_agent_online import TTNAgent_online
 from mix_ttn_agent_online_offline import TTNAgent_online_offline_mix
-from envs.gridworld import GridHardRGBGoalAll
 # from utils import plot_learning_curve, make_env
 import os
 import sys
@@ -20,9 +19,6 @@ from datetime import datetime
 from replay_memory import ReplayBuffer
 #from training3 import train_offline_online, train_online, train_offline
 from training3 import train_offline_online, train_online, train_offline
-from utils.env_utils import process_state_constructor
-from envs.env_constructor import get_env
-
 import training3
 np_load_old = np.load
 
@@ -63,6 +59,50 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     num_steps = num_step_ratio_mem  # 200000
 
+    ## normolize states
+    def process_state(state, normalize=True): #FIXME: This doesn't need to be an inner function. Unnecessary loss of performance
+        # states = np.array([state['position'], state['vel']])
+        if normalize:
+            if en == "Acrobot":
+                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
+                states[0] = (states[0] + 1) / (2)
+                states[1] = (states[1] + 1) / (2)
+                states[2] = (states[2] + 1) / (2)
+                states[3] = (states[3] + 1) / (2)
+                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
+                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
+            elif en == "LunarLander":
+                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
+                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
+                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0] #QSTN: why are we doing this to normalize the input. Is there any paper out there that does this? If so why? 
+                states[0] = (states[0] - mean[0]) / (deviation[0])
+                states[1] = (states[1] - mean[1]) / (deviation[1])
+                states[2] = (states[2] - mean[2]) / (deviation[2])
+                states[3] = (states[3] - mean[3]) / (deviation[3])
+                states[4] = (states[4] - mean[4]) / (deviation[4])
+                states[5] = (states[5] - mean[5]) / (deviation[5])
+
+            elif en == "cartpole":
+                states = np.array([state[0], state[1], state[2], state[3]])
+                states[0] = states[0]
+                states[1] = states[1]
+                states[2] = states[2]
+                states[3] = states[3]
+
+            elif en == "Mountaincar":
+                states = np.array([state[0], state[1]])
+                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
+                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
+
+            elif en == "catcher":
+                states = np.array([state['player_x'], state['player_vel'], state['fruit_x'], state['fruit_y']])
+                states[0] = (states[0] - 25.5) / 26
+                states[1] = states[1] / 10
+                states[2] = (states[2] - 30) / 22
+                states[3] = (states[3] - 18.5) / 47
+
+        return states
+
     ple_rewards = {
         "positive": 1.0,
         "negative": -1.0,
@@ -72,7 +112,28 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     }
 
     ## select environment
-    env, input_dim, num_act = get_env(en, rand_seed)
+    if en == "Mountaincar":
+        env = gym.make('MountainCar-v0')
+        input_dim = env.observation_space.shape[0]
+        env._max_episode_steps = 1000 
+        num_act = 3 #TODO: These lines can be replaced with env.action_space.n
+    elif en == "Acrobot":
+        env = gym.make('Acrobot-v1')
+        input_dim = env.observation_space.shape[0]
+        num_act = 3
+    elif en == "LunarLander":
+        env = gym.make('LunarLander-v2')
+        input_dim = env.observation_space.shape[0]
+        num_act = 4
+    elif en == "cartpole":
+        env = gym.make('CartPole-v0')
+        input_dim = env.observation_space.shape[0]
+        num_act = 2
+    # elif en == "catcher":
+    #     game = Catcher(init_lives=1)
+    #     p = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards,
+    #             rng=rand_seed)
+
 
     ########## Setting the random seed ###########
     env.seed(rand_seed)
@@ -80,8 +141,6 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     np.random.seed(rand_seed)
     ##############################################
 
-    ### Normalize State
-    process_state = process_state_constructor(en)
 
     ########### FIXME: This part should be put in seperate files like config files #############
 
@@ -191,6 +250,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
                               ])
+        print(params)
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -205,6 +265,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     else:
         nn = DQNAgent(gamma, q_nnet_params, params, input_dims=input_dim)
+
 
     def generate_data(): # QSTN: Why this should be an inner function? we can put it in a seperate file.
 
@@ -244,8 +305,6 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
                     # do one step in the environment
                     new_state_unnormal, reward, done, info = env.step(np.squeeze(action))  # action is a 1x1 matrix
-                    # if done:
-                    #     print(new_state_unnormal, reward, done, info)
                     new_state = process_state(new_state_unnormal)
                     # update saved states
                     prev_state = state
@@ -280,6 +339,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
                 episode_length += 1
                 i += 1
+
                 if done:
                     run_episodes.append(episodes)
                     run_returns.append(ret)
@@ -307,6 +367,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                     episode_length = 0
                     state_unnormal = env.reset()
                     state = process_state(state_unnormal)
+
+
 
                 ## Get action
                 if TTN:
@@ -392,6 +454,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     if not os.path.isfile(files_name+".npy"):
         files_name = generate_data()
+    else:
+        print(f"Data already exists at: {files_name}+.npy")
 
 
     return files_name+'.npy'
@@ -412,7 +476,7 @@ if __name__ == "__main__":
     parser.add_argument('--algo', type=str, default='fqi')
     parser.add_argument('--hyper_num', type=int, default=15)
     parser.add_argument('--data_length_num', type=int, default=0)
-    parser.add_argument('--mem_size', type=int, default=10000)
+    parser.add_argument('--mem_size', type=int, default=50000) #using 50K for offline, online and offline-online experiments
     parser.add_argument('--num_rep', type=int, default=1)
     parser.add_argument('--offline', type=bool, default=False)
     parser.add_argument('--fqi_rep_num', type=int, default=0)
@@ -485,8 +549,6 @@ if __name__ == "__main__":
                     args.data_dir = 'Data//cartpole_rnd_10000.npy'
                 if args.en == 'LunarLander':
                     args.data_dir = 'Data//LunarLander_rnd_10000.npy'
-                if args.en == 'gridhard':
-                    args.data_dir = 'Data//gridhard_rnd_10000.npy'
             elif args.mem_size == 50000:
                 if args.en== 'Mountaincar':
                     args.data_dir = 'Data//Mountaincar_rnd_50000.npy'
@@ -496,8 +558,6 @@ if __name__ == "__main__":
                     args.data_dir = 'Data//cartpole_rnd_50000.npy'
                 if args.en == 'LunarLander':
                     args.data_dir = 'Data//LunarLander_rnd_50000.npy'
-                if args.en == 'gridhard':
-                    args.data_dir = 'Data//gridhard_rnd_50000.npy'
 
 
 
