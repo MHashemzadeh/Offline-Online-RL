@@ -15,7 +15,7 @@ Right now, a dataset generated with a good policy is not available for these env
 For these environemnts, we have '--tr_NUM_FRAMES'= 5000000, '--tr_TRAINING_FREQ' = 4 which you do not need to change them. To run for different random seeds, you may want to change the value of '--SEED'. The same as before, you need to change the ```hyper_num``` for each environments. 
 
 ```
-python creat_data.py --offline_online_training 'offline_online' --tr_hyper_num 32 
+python creat_data.py --offline_online_training 'offline_online' --tr_hyper_num 13 
 ```
 
 The ```hyper_num``` assigns corresponding values to the hyper-parameters. For the Two-Timescale Networks, we used
