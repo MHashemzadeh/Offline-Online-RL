@@ -8,4 +8,4 @@
 #SBATCH --mail-user=awahab.bscs16seecs@seecs.edu.pk
 #SBATCH --mail-type=ALL
 
-python -u create_data.py --offline_online_training 'offline_online' --tr_hyper_num 15
+python -u create_data.py --offline_online_training 'offline' --tr_hyper_num 15
