@@ -1,6 +1,6 @@
 import numpy as np
 import torch as T
-from TTN_network import TTNNetwork, TTNNetworkMaze
+from TTN_network import TTNNetwork, TTNNET
 from replay_memory import ReplayBuffer
 import torch
 from torch.autograd import Variable
@@ -319,12 +319,12 @@ class TTNAgent_online_offline_mix(object):
             # self.q_eval.optimizer.step()
             # do update for q_next()
             if self.loss_features == "ATC":
-                batch_size_cl = 32
-                augmentation_padding = 4
-                augmentation_prob = 0.1
-                delta = 3
-                target_update_interval = 1
-                ul_target_update_tau = 0.01
+                batch_size_cl = 32 # should be the same
+                augmentation_padding = 4 # should be the same 
+                augmentation_prob = 0.1 # [0.01, 0.1, 0.2, 0.3 , 1.] should be defined in the code
+                delta = 3 # should be the same 
+                target_update_interval = 1 
+                ul_target_update_tau = 0.01 # should be the same 
 
                 ########### Computing the contrastive loss ###########
                 # Currently it is implemented only with a single environment in mind and one repetition
@@ -332,7 +332,6 @@ class TTNAgent_online_offline_mix(object):
                 self.ul_optimizer.zero_grad()
                 states, actions, rewards, next_states, _, terminals = self.sample_buffer_nextaction_consequtive(batch_size_cl)
                 #print(terminals)
-                states = self.cfg.state_normalizer(states)
                 anchor = states[:-self.ul_delta_T]
                 positive = states[self.ul_delta_T:]
 
@@ -342,17 +341,32 @@ class TTNAgent_online_offline_mix(object):
                 #print(self.ul_random_shift_pad)
                 if self.ul_random_shift_prob > 0.:
 
-                    anchor = random_shift(
-                        imgs=anchor,
-                        pad=self.ul_random_shift_pad,
-                        prob=self.ul_random_shift_prob,
-                    )
+                    if self.ul_data_aug_type == 'random_shift':
 
-                    positive = random_shift(
-                        imgs=positive,
-                        pad=self.ul_random_shift_pad,
-                        prob=self.ul_random_shift_prob,
-                    )
+                        anchor = random_shift(imgs=anchor, pad=self.ul_random_shift_pad, p=self.ul_random_shift_prob)
+                        positive = random_shift(imgs=positive,, pad=self.ul_random_shift_pad, p=self.ul_random_shift_prob) 
+
+                    elif self.ul_data_aug_type == 'ras':
+
+                        anchor = random_amplitude_scaling(anchor, alpha=self.ul_ras_alpha, beta=self.ul_ras_beta, 
+                                                            prob=self.ul_random_shift_prob, multivariate=False)
+
+                        positive = random_amplitude_scaling(positive, alpha=self.ul_ras_alpha, beta=self.ul_ras_beta, 
+                                                            prob=self.ul_random_shift_prob, multivariate=False) 
+                    else:
+                        raise ValueError('Data Augmentation type is not valid: ', ul_data_aug_type)                                                       
+
+                    # anchor = random_shift(
+                    #     imgs=anchor,
+                    #     pad=self.ul_random_shift_pad,
+                    #     prob=self.ul_random_shift_prob,
+                    # )
+
+                    # positive = random_shift(
+                    #     imgs=positive,
+                    #     pad=self.ul_random_shift_pad,
+                    #     prob=self.ul_random_shift_prob,
+                    # )
             #anchor, positive = buffer_to((anchor, positive),
             #    device=self.agent.device)
                 with torch.no_grad():
@@ -376,12 +390,13 @@ class TTNAgent_online_offline_mix(object):
                         self.ul_parameters(), self.ul_clip_grad_norm)
                 self.ul_optimizer.step()
 
+                # Just logging purposes
                 correct = torch.argmax(logits.detach(), dim=1) == labels
                 accuracy = torch.mean(correct[valid].float())
                 
+                        self.ul_target_update_tau)
                 if self.total_steps % self.ul_target_update_interval == 0:
                     update_state_dict(self.ul_target_encoder, self.ul_encoder.state_dict(),
-                        self.ul_target_update_tau)
                     #
                     # loss.backward()
                     # self.q_eval.optimizer.step()
