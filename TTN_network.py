@@ -63,7 +63,7 @@ class TTNNetwork(nn.Module):
 
         # self.device = T.cuda.set_device(T.device('cuda:0'))
         # self.device = T.cuda.set_device(T.device('cuda'))
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.device = T.device('cpu') #'cuda:0' if T.cuda.is_available() else 'cpu'
         self.to(self.device)
 
 
