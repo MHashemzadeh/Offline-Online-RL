@@ -5,26 +5,31 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 from torch.autograd import Variable
-# from numba import jit
-
-
-
-
+from utils.lta import tile_activation # sparsity import
 
 class TTNNetwork(nn.Module):
-    def __init__(self, beta1, beta2, lr, n_actions, input_dims, number_unit=128, num_units_rep=128):
+    def __init__(self, beta1, beta2, lr, 
+                 n_actions, input_dims, tile_max=20, eta=2,
+                 pre_tiling_width=20, tile_min=-20, bins=20,
+                 if_sparse=False, number_unit=128, num_units_rep=128):
+        
         super(TTNNetwork, self).__init__()
-
         self.input_dims = input_dims
+        
+        self.bins = bins
+        if eta < 0: # controls the sparsity
+            self.eta = 1.0 / self.bins
+        else:
+            self.eta = eta
 
-
+        self.tile_min = tile_min
+        self.tile_max = tile_max
 
         self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
         self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
-        self.fc3 = nn.Linear(number_unit, num_units_rep, bias=True) # the representation layer
-        self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
+        self.fc3 = nn.Linear(number_unit, pre_tiling_width, bias=True) # the representation layer
+        self.fc4 = nn.Linear(pre_tiling_width * bins, n_actions, bias=True) # the prediction layer
         self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
-
 
         # nn.init.kaiming_normal_(self.fc1.weight, nonlinearity="relu", mode='fan_in')
         # nn.init.kaiming_normal_(self.fc2.weight, nonlinearity="relu", mode='fan_in')
@@ -50,10 +55,6 @@ class TTNNetwork(nn.Module):
         # self.optimizer = optim.RMSprop(self.parameters(), lr=lr)
 
         self.loss = nn.MSELoss()
-
-
-
-
         # self.device = T.cuda.set_device(T.device('cuda:0'))
         # self.device = T.cuda.set_device(T.device('cuda'))
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -74,15 +75,14 @@ class TTNNetwork(nn.Module):
         # print("T.cuda.current_device()", T.cuda.current_device())
         # print("T.cuda.get_device_name(0)", T.cuda.get_device_name(0))
         # Tesla K80
-
+        
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+        x = F.relu(self.fc3(x))
+        x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc3's output.
         self.predictions = self.fc4(x)
         self.pred_states = self.fc5(x)
         return self.predictions, x, self.pred_states
-
-
 
         # x = F.relu(self.fc1(state))
         # x = F.relu(self.fc2(x))
