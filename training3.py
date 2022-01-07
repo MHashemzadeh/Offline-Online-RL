@@ -21,6 +21,7 @@ from datetime import datetime
 from replay_memory import ReplayBuffer
 from utils.env_utils import process_state_constructor
 from envs.env_constructor import get_env
+from pathlib import Path
 
 # np_load_old = np.load
 
@@ -99,7 +100,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
                     # Data Augmentation Params
                    "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
+                   "data_aug_prob": 0.1,
                    "random_shift_pad": 4,
                    "ras_alpha": 0.6,
                    "ras_beta": 1.2
@@ -116,9 +117,21 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                                     ("fqi_rep", [fqi_rep]),
                                     ])
 
-    files_name = "Online//Training_{}_online_env_{}_mem_size_{}_date_{}_hyper_{}".format(alg_type, en, mem_size, datetime.today().strftime(
-                                                                                            "%d_%m_%Y"), hyper_num
-                                                                                        )
+
+    output_dir_path = "Online//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
+                                                                                            nnet_params['data_aug_prob'],
+                                                                                            nnet_params['ras_alpha'],
+                                                                                            nnet_params['ras_beta'])
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+
+    files_name = "{}//Training_{}_online_env_{}_mem_size_{}_date_{}_hyper_{}".format(output_dir_path,
+                                                                              alg_type, 
+                                                                              en, 
+                                                                              mem_size, 
+                                                                              datetime.today().strftime("%d_%m_%Y"), 
+                                                                              hyper_num
+                                                                            )
     if rnd:
         files_name = files_name+'_rnd'
     if initial_batch:
@@ -158,6 +171,8 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
                               ])
+        print(f"Params: {params}")
+        print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -506,7 +521,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
                     # Data Augmentation Params
                    "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
+                   "data_aug_prob": 0.1,
                    "random_shift_pad": 4,
                    "ras_alpha": 0.6,
                    "ras_beta": 1.2
@@ -522,9 +537,20 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                                     ("fqi_rep", [fqi_rep]),
                                     ])
 
-    files_name = "Offline-online//Training_{}_offlineonline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(alg_type, en, mem_size,
-                                                                                         datetime.today().strftime(
-                                                                                             "%d_%m_%Y"), hyper_num, num_updates_pretrain
+    output_dir_path = "Offline-online//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
+                                                                                            nnet_params['data_aug_prob'],
+                                                                                            nnet_params['ras_alpha'],
+                                                                                            nnet_params['ras_beta'])
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+
+    files_name = "{}//Training_{}_offlineonline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
+                                                                                                 alg_type, 
+                                                                                                 en, 
+                                                                                                 mem_size,
+                                                                                                 datetime.today().strftime("%d_%m_%Y"), 
+                                                                                                 hyper_num, 
+                                                                                                 num_updates_pretrain
                                                                                          )
     if rnd:
         files_name = files_name + '_rnd'
@@ -564,6 +590,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
                               ])
+        print(f"Params: {params}")
+        print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -673,10 +701,10 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         for itr in range(1):
 
             ## do update on step offline before running the agent
-
+            # Here pretraining step would be skipped if files already exist 
             # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
             if not os.path.isfile("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"):
-
+                print("Pre-training")
                 if TTN:
                     loss = nn.learn()
 
@@ -735,6 +763,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                                                                                      mem_size) + ".pt")
 
             else:
+
+                print("Weights and states already exists, skipping pretraining!")
                 if TTN:
                     nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
                     nn.lin_weights = T.load("lin_weights_{}_{}_{}".format(alg, en, mem_size) + ".pt")
@@ -954,11 +984,11 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
 
                     # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
+                #    "data_aug_type": 'ras',
+                #    "data_aug_prob": 0.1,
+                #    "random_shift_pad": 4,
+                #    "ras_alpha": 0.6,
+                #    "ras_beta": 1.2
                      }
 
     ## TTN
@@ -975,10 +1005,10 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
                     # Data Augmentation Params
                    "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
+                   "data_aug_prob": 0.1,
                    "random_shift_pad": 4,
                    "ras_alpha": 0.6,
-                   "ras_beta": 1.2
+                   "ras_beta": 1.4
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
@@ -991,9 +1021,21 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                     ("fqi_rep", [fqi_rep]),
                                     ])
 
-    files_name = "Offline//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(alg_type, en, mem_size,
-                                                                                         datetime.today().strftime(
-                                                                                             "%d_%m_%Y"), hyper_num, num_updates_pretrain
+
+    output_dir_path = "Offline//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
+                                                                                            nnet_params['data_aug_prob'],
+                                                                                            nnet_params['ras_alpha'],
+                                                                                            nnet_params['ras_beta'])
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+
+    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
+                                                                                           alg_type,
+                                                                                           en, 
+                                                                                           mem_size,
+                                                                                           datetime.today().strftime("%d_%m_%Y"), 
+                                                                                           hyper_num,
+                                                                                           num_updates_pretrain
                                                                                          )
     if rnd:
         files_name = files_name + '_rnd'
@@ -1036,6 +1078,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               ])
 
         print(f"Parameters: {params}")
+        print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -1207,6 +1250,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                                                                 mem_size, num_updates_pretrain) + ".pt")
 
             else:
+                print("features and lin_weights already exist, skipping pretrianing!")
                 if TTN:
                     nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
                     nn.lin_weights = T.load("lin_weights_{}_{}_{}".format(alg, en, mem_size) + ".pt")

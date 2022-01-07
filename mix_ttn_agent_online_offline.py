@@ -254,7 +254,7 @@ class TTNAgent_online_offline_mix(object):
 
             #### Data Augmentation #####
             if self.data_aug_prob > 0.:
-                print('augmenting data')
+                # print('augmenting data')
                 if self.data_aug_type == 'random_shift':
 
                     states = random_shift(states, pad=self.random_shift_pad, p=self.data_aug_prob)
@@ -411,6 +411,27 @@ class TTNAgent_online_offline_mix(object):
                         #     self.data_length)
                         states_all, actions_all, rewards_all, states_all_, actions_all_, dones_all = self.memory.sample_buffer_nextaction_consequtive_chunk(self.data_length)
 
+                   
+                   
+                    #### Data Augmentation #####
+                    if self.data_aug_prob > 0.:
+                        # print('augmenting data')
+                        if self.data_aug_type == 'random_shift':
+
+                            self.states_all = random_shift(self.states_all, pad=self.random_shift_pad, p=self.data_aug_prob)
+                            self.states_all_ = random_shift(self.states_all_, pad=self.random_shift_pad, p=self.data_aug_prob) 
+
+                        elif self.data_aug_type == 'ras':
+
+                            self.states_all = random_amplitude_scaling(self.states_all, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                                prob=self.data_aug_prob, multivariate=False)
+
+                            self.states_all_ = random_amplitude_scaling(self.states_all_, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                                prob=self.data_aug_prob, multivariate=False) 
+                        else:
+                            raise ValueError('Data Augmentation type is not valid: ', self.data_aug_type)
+                    
+                    
                     self.states_all_ch = states_all
                     self.actions_all_ch = actions_all
                     self.rewards_all_ch = rewards_all
@@ -586,7 +607,7 @@ class TTNAgent_online_offline_mix(object):
 
         #### Data Augmentation #####
         if self.data_aug_prob > 0.:
-            print('augmenting data')
+            # print('augmenting data')
             if self.data_aug_type == 'random_shift':
 
                 states = random_shift(states, pad=self.random_shift_pad, p=self.data_aug_prob)
@@ -679,6 +700,27 @@ class TTNAgent_online_offline_mix(object):
                         states_all, actions_all, rewards_all, states_all_, actions_all_, dones_all = self.memory.sample_buffer_nextaction_consequtive_chunk(
                             self.data_length)
 
+
+                    #### Data Augmentation #####
+                    if self.data_aug_prob > 0.:
+                        # print('augmenting data')
+                        if self.data_aug_type == 'random_shift':
+
+                            states_all = random_shift(states_all, pad=self.random_shift_pad, p=self.data_aug_prob)
+                            states_all_ = random_shift(states_all_, pad=self.random_shift_pad, p=self.data_aug_prob) 
+
+                        elif self.data_aug_type == 'ras':
+
+                            states_all = random_amplitude_scaling(states_all, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                                prob=self.data_aug_prob, multivariate=False)
+
+                            states_all_ = random_amplitude_scaling(states_all_, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                                prob=self.data_aug_prob, multivariate=False) 
+                        else:
+                            raise ValueError('Data Augmentation type is not valid: ', self.data_aug_type)
+
+
+
                     self.states_all_ch = states_all
                     self.actions_all_ch = actions_all
                     self.rewards_all_ch = rewards_all
@@ -734,8 +776,7 @@ class TTNAgent_online_offline_mix(object):
                         # b = T.mm(A_tr, T.unsqueeze(targets, 1)) + self.reg_A * T.reshape(T.transpose(self.lin_weights.reshape(-1, 1), 0, 1), [-1,1])
                         # print(A_tr.shape, A.shape, b.shape, targets.shape)
                         # new_weights = T.solve(b, A)[0]
-                        new_weights = T.lstsq(b, A)[
-                            0]  # T.mm(A.inverse(), b) #T.lstsq(b, A)[0]  #T.mm(A.inverse(), b) #tf.matrix_solve(A, b)
+                        new_weights = T.lstsq(b, A)[0]  # T.mm(A.inverse(), b) #T.lstsq(b, A)[0]  #T.mm(A.inverse(), b) #tf.matrix_solve(A, b)
 
                     elif self.fqi_reg_type == 'l2':
                         A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
@@ -858,13 +899,11 @@ class TTNAgent_online_offline_mix(object):
 
                     # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
 
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     # maxlinq[self.dones_all_ch[ctr*L: ctr*L+L]] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
 
                     # actions = self.actions_all_ch_[ctr * L: ctr * L + L].to(self.q_eval.device)
                     # sarsa = T.zeros(L).to(self.q_eval.device)
@@ -888,8 +927,7 @@ class TTNAgent_online_offline_mix(object):
 
                     # _, features_allmem, _ = self.q_eval.forward(states_all)
                     features_allmem = self.feature
-                    features_allmem_bias = T.cat(
-                        (features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
                     feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
                                             features_allmem_bias.shape[1]).to(self.q_eval.device)
@@ -935,13 +973,11 @@ class TTNAgent_online_offline_mix(object):
 
                     # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
 
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     # maxlinq[self.dones_all_ch[ctr*L: ]] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
                     expectedsarsa[self.dones_all_ch[ctr * L:]] = 0
 
                     # targets = self.rewards_all_ch + self.gamma * maxlinq
@@ -949,8 +985,7 @@ class TTNAgent_online_offline_mix(object):
 
                     # _, features_allmem, _ = self.q_eval.forward(states_all)
                     features_allmem = self.feature
-                    features_allmem_bias = T.cat(
-                        (features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
                     feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
                                             features_allmem_bias.shape[1]).to(self.q_eval.device)
@@ -1012,13 +1047,31 @@ class TTNAgent_online_offline_mix(object):
         return
 
     def learn_pretrain(self):
-
+        print("nn.learn_pretrain")
         if self.tilecoding:
             feature = self.f_current
             nextfeature = self.f_next
             self.learn_fqi(feature, nextfeature)
 
         else:
+            #### Data Augmentation #####
+            if self.data_aug_prob > 0.:
+                # print('augmenting data')
+                if self.data_aug_type == 'random_shift':
+
+                    self.states_all_ch = random_shift(self.states_all_ch, pad=self.random_shift_pad, p=self.data_aug_prob)
+                    self.states_all_ch_ = random_shift(self.states_all_ch_, pad=self.random_shift_pad, p=self.data_aug_prob) 
+
+                elif self.data_aug_type == 'ras':
+
+                    self.states_all_ch = random_amplitude_scaling(self.states_all_ch, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                        prob=self.data_aug_prob, multivariate=False)
+
+                    self.states_all_ch_ = random_amplitude_scaling(self.states_all_ch_, alpha=self.ras_alpha, beta=self.ras_beta, 
+                                                        prob=self.data_aug_prob, multivariate=False) 
+                else:
+                    raise ValueError('Data Augmentation type is not valid: ', self.data_aug_type)
+
             _, feature, _ = self.q_eval.forward(self.states_all_ch)
             _, nextfeature, _ = self.q_eval.forward(self.states_all_ch_)
             self.learn_fqi(feature, nextfeature)

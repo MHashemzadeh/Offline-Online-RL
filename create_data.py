@@ -173,8 +173,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "fqi_reg_type": "prev",  # "l2" or "prev"
 
                     # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
+                   "data_aug_type": 'ras', #ras for state based, random_shift for image based
+                   "data_aug_prob": 0.1,
                    "random_shift_pad": 4,
                    "ras_alpha": 0.6,
                    "ras_beta": 1.2

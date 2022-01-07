@@ -59,6 +59,8 @@ class ReplayBuffer(object):
             self.terminal_memory[:len(temp)] = T.tensor((d.item().get('done')), dtype=T.bool)
             self.mem_cntr = len(temp)
 
+            print(f"mem_cntr: {self.mem_cntr} ; mem_size: {self.mem_size}")
+
             # self.state_memory = self.state_memory[:self.mem_size]
             # self.new_state_memory = self.new_state_memory[:self.mem_size]
             # self.action_memory = self.action_memory[:self.mem_size]
