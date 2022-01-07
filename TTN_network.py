@@ -25,10 +25,10 @@ class TTNNetwork(nn.Module):
         self.tile_min = tile_min
         self.tile_max = tile_max
 
-        self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
-        self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
-        self.fc3 = nn.Linear(number_unit, pre_tiling_width, bias=True) # the representation layer
-        self.fc4 = nn.Linear(pre_tiling_width * bins, n_actions, bias=True) # the prediction layer
+        self.fc1 = nn.Linear(input_dims, pre_tiling_width, bias=True)
+        self.fc2 = nn.Linear(pre_tiling_width * bins, pre_tiling_width, bias=True)
+        self.fc3 = nn.Linear(pre_tiling_width * bins, num_units_rep, bias=True) # the representation layer
+        self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
         self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
 
         # nn.init.kaiming_normal_(self.fc1.weight, nonlinearity="relu", mode='fan_in')
@@ -76,10 +76,11 @@ class TTNNetwork(nn.Module):
         # print("T.cuda.get_device_name(0)", T.cuda.get_device_name(0))
         # Tesla K80
         
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        x = self.fc1(state)
+        x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+        x = self.fc2(x)
+        x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc2's output.
         x = F.relu(self.fc3(x))
-        x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc3's output.
         self.predictions = self.fc4(x)
         self.pred_states = self.fc5(x)
         return self.predictions, x, self.pred_states
