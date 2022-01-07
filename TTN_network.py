@@ -19,9 +19,17 @@ class TTNNetwork(nn.Module):
 
 
 
-        self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
-        self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
-        self.fc3 = nn.Linear(number_unit, num_units_rep, bias=True) # the representation layer
+        # self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
+        # self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
+        # self.fc3 = nn.Linear(number_unit, num_units_rep, bias=True) # the representation layer
+        self.rep = nn.Sequential(
+            nn.Linear(input_dims, number_unit, bias=True),
+            nn.ReLU(),
+            nn.Linear(number_unit, number_unit, bias=True),
+            nn.ReLU(),
+            nn.Linear(number_unit, num_units_rep, bias=True),
+            nn.ReLU(),
+        )
         self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
         self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
 
@@ -30,9 +38,10 @@ class TTNNetwork(nn.Module):
         # nn.init.kaiming_normal_(self.fc2.weight, nonlinearity="relu", mode='fan_in')
         # nn.init.kaiming_normal_(self.fc3.weight, nonlinearity="relu", mode='fan_in')
         # nn.init.kaiming_normal_(self.fc4.weight, nonlinearity="relu", mode='fan_in')
-        self.fc1.bias.data.fill_(0.0)
-        self.fc2.bias.data.fill_(0.0)
-        self.fc3.bias.data.fill_(0.0)
+        self.rep.apply(self.init_weights)
+        # self.fc1.bias.data.fill_(0.0)
+        # self.fc2.bias.data.fill_(0.0)
+        # self.fc3.bias.data.fill_(0.0)
         self.fc4.bias.data.fill_(0.0)
 
         # nn.init.zeros_(self.fc1.bias)
@@ -40,9 +49,9 @@ class TTNNetwork(nn.Module):
         # nn.init.zeros_(self.fc3.bias)
         # nn.init.zeros_(self.fc4.bias)
 
-        nn.init.xavier_uniform_(self.fc1.weight)
-        nn.init.xavier_uniform_(self.fc2.weight)
-        nn.init.xavier_uniform_(self.fc3.weight)
+        # nn.init.xavier_uniform_(self.fc1.weight)
+        # nn.init.xavier_uniform_(self.fc2.weight)
+        # nn.init.xavier_uniform_(self.fc3.weight)
         nn.init.xavier_uniform_(self.fc4.weight)
         nn.init.xavier_uniform_(self.fc5.weight)
 
@@ -52,12 +61,16 @@ class TTNNetwork(nn.Module):
         self.loss = nn.MSELoss()
 
 
-
-
         # self.device = T.cuda.set_device(T.device('cuda:0'))
         # self.device = T.cuda.set_device(T.device('cuda'))
         self.device = T.device('cpu') #'cuda:0' if T.cuda.is_available() else 'cpu'
         self.to(self.device)
+
+
+    def init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform(m.weight)
+            m.bias.data.fill_(0.)
 
     # @jit(target='CUDA 0')
     # @jit(nopython=True)
@@ -75,9 +88,10 @@ class TTNNetwork(nn.Module):
         # print("T.cuda.get_device_name(0)", T.cuda.get_device_name(0))
         # Tesla K80
 
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+        # x = F.relu(self.fc1(state))
+        # x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
+        x = self.rep(state)  # + T.zeros(1, self.input_dims)  # do we need to add bias
         self.predictions = self.fc4(x)
         self.pred_states = self.fc5(x)
         return self.predictions, x, self.pred_states
