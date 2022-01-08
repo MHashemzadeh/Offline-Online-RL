@@ -146,7 +146,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -174,15 +174,14 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
                     # Data Augmentation Params
                    "data_aug_type": 'ras', #ras for state based, random_shift for image based
-                   "data_aug_prob": 0.1,
+                   "data_aug_prob": 0.0,
                    "random_shift_pad": 4,
                    "ras_alpha": 0.6,
                    "ras_beta": 1.2
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
@@ -482,7 +481,7 @@ if __name__ == "__main__":
     parser.add_argument('--fqi_rep_num', type=int, default=0)
     parser.add_argument('--num_step_ratio_mem', type=int, default=120000)
     parser.add_argument('--en', type=str, default='Mountaincar')  # set name of the environment here e.g. Mountaincar,
-    parser.add_argument('--fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--method_sarsa', type=str, default='expected-sarsa')  # expected-sarsa, q-learning
 
 
@@ -520,7 +519,7 @@ if __name__ == "__main__":
     parser.add_argument('--tr_num_iteration', type=int, default=1)
     parser.add_argument('--tr_num_epi_per_itr', type=int, default=200)
     parser.add_argument('--tr_num_updates', type=int, default=2)
-    parser.add_argument('--tr_fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--tr_fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--tr_epsilon_stop_training', type=float, default=10e-7)
     parser.add_argument('--tr_status', type=float, default=10e-7)
     parser.add_argument('--tr_offline', type=bool, default=False) # this should be False only for online setting

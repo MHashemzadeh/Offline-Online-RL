@@ -1,4 +1,6 @@
 OrderedDict([('nn_lr', 0.0001), ('reg_A', 0.001), ('eps_decay_steps', 1), ('update_freq', 1000), ('data_length', 50000), ('fqi_rep', 1)])
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/TTN_network.py:72: UserWarning: nn.init.xavier_uniform is now deprecated in favor of nn.init.xavier_uniform_.
+  nn.init.xavier_uniform(m.weight)
 Data already exists at: Data/Mountaincar_50000+.npy
 offline 15 Mountaincar 50000
 Parameters: OrderedDict([('nn_lr', 0.001), ('reg_A', 0.001), ('eps_decay_steps', 1), ('update_freq', 1000), ('data_length', 50000), ('fqi_rep', 1)])
@@ -58,19 +60,19 @@ mem_cntr: 50000 ; mem_size: 50000
 /project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:174: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   actions_ = T.tensor(new_action).to(self.q_eval.device)
 nn.learn_nn_feature_fqi FQI:  998
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:689: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:704: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   states_all = T.tensor(self.memory.state_memory[:mem_index, :]).to(self.q_eval.device)
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:690: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:705: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   actions_all = T.tensor(self.memory.action_memory[:mem_index]).to(self.q_eval.device)
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:691: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:706: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   rewards_all = T.tensor(self.memory.reward_memory[:mem_index]).to(self.q_eval.device)
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:692: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:707: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   states_all_ = T.tensor(self.memory.new_state_memory[:mem_index, :]).to(self.q_eval.device)
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:693: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:708: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   actions_all_ = T.tensor(self.memory.new_action_memory[:mem_index]).to(self.q_eval.device)
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:694: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:709: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   dones_all = T.tensor(self.memory.terminal_memory[:mem_index]).to(self.q_eval.device)
-/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:779: UserWarning: torch.lstsq is deprecated in favor of torch.linalg.lstsq and will be removed in a future PyTorch release.
+/project/6029407/janjua/Offline-Online-RL-Augmentation/Offline-Online-RL/mix_ttn_agent_online_offline.py:794: UserWarning: torch.lstsq is deprecated in favor of torch.linalg.lstsq and will be removed in a future PyTorch release.
 torch.linalg.lstsq has reversed arguments and does not return the QR decomposition in the returned tuple (although it returns other information about the problem).
 To get the qr decomposition consider using torch.linalg.qr.
 The returned solution in torch.lstsq stored the residuals of the solution in the last m - n columns of the returned value whenever m > n. In torch.linalg.lstsq, the residuals in the field 'residuals' of the returned named tuple.

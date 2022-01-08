@@ -1,6 +1,6 @@
 import numpy as np
 import torch as T
-from TTN_network import TTNNetwork, TTNNET
+from TTN_network import TTNNetwork, TTNNetworkMaze
 from replay_memory import ReplayBuffer
 import torch
 from torch.autograd import Variable
@@ -182,7 +182,11 @@ class TTNAgent_online_offline_mix(object):
     # @jit(target='cuda')
     # @jit
     def decrement_epsilon(self):
+        
+        #TODO: if TTN use fix , if DQN use decrement
         self.epsilon = self.epsilon
+
+
         # self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
         # self.epsilon = self.eps_init * (self.eps_final ** (self.global_step / self.eps_decay_steps)) if self.epsilon > self.eps_final else self.eps_final
 
@@ -211,6 +215,9 @@ class TTNAgent_online_offline_mix(object):
         if np.random.random() > epsilon:
             with torch.no_grad():
                 state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
+
+                #TODO: Do we need augmentation before choosing action?
+
                 q_pred, features, pred_states = self.q_eval.forward(state)
                 features_bias = T.cat((features, T.ones((features.shape[0], 1)).to(self.q_eval.device)), 1)
                 # print(features_bias)
@@ -286,6 +293,7 @@ class TTNAgent_online_offline_mix(object):
             # q_next = self.q_next.forward(states_).max(dim=1)[0]
 
             # loss = 0
+            #TODO: Use target network here to make consistent with offline.
             if self.loss_features == "semi_MSTDE":
                 with torch.no_grad():
                     q_next_all, features_next, pred_states_next = self.q_eval.forward(states_)
@@ -316,93 +324,7 @@ class TTNAgent_online_offline_mix(object):
                 # print(q_pred.data, q_target.data)
                 loss.backward()
                 self.q_eval.optimizer.step()
-            #
-            # loss.backward()
-            # self.q_eval.optimizer.step()
-            # do update for q_next()
-            if self.loss_features == "ATC":
-                batch_size_cl = 32 # should be the same
-                augmentation_padding = 4 # should be the same 
-                augmentation_prob = 0.1 # [0.01, 0.1, 0.2, 0.3 , 1.] should be defined in the code
-                delta = 3 # should be the same 
-                target_update_interval = 1 
-                ul_target_update_tau = 0.01 # should be the same 
 
-                ########### Computing the contrastive loss ###########
-                # Currently it is implemented only with a single environment in mind and one repetition
-                #print('Calculating CL loss')
-                self.ul_optimizer.zero_grad()
-                states, actions, rewards, next_states, _, terminals = self.sample_buffer_nextaction_consequtive(batch_size_cl)
-                #print(terminals)
-                anchor = states[:-self.ul_delta_T]
-                positive = states[self.ul_delta_T:]
-
-                #print('anchor: ', anchor.shape)        
-                #print('positive: ', positive.shape)
-                #print(self.ul_random_shift_prob)
-                #print(self.ul_random_shift_pad)
-                if self.ul_random_shift_prob > 0.:
-
-                    if self.ul_data_aug_type == 'random_shift':
-
-                        anchor = random_shift(imgs=anchor, pad=self.ul_random_shift_pad, p=self.ul_random_shift_prob)
-                        positive = random_shift(imgs=positive,, pad=self.ul_random_shift_pad, p=self.ul_random_shift_prob) 
-
-                    elif self.ul_data_aug_type == 'ras':
-
-                        anchor = random_amplitude_scaling(anchor, alpha=self.ul_ras_alpha, beta=self.ul_ras_beta, 
-                                                            prob=self.ul_random_shift_prob, multivariate=False)
-
-                        positive = random_amplitude_scaling(positive, alpha=self.ul_ras_alpha, beta=self.ul_ras_beta, 
-                                                            prob=self.ul_random_shift_prob, multivariate=False) 
-                    else:
-                        raise ValueError('Data Augmentation type is not valid: ', ul_data_aug_type)                                                       
-
-                    # anchor = random_shift(
-                    #     imgs=anchor,
-                    #     pad=self.ul_random_shift_pad,
-                    #     prob=self.ul_random_shift_prob,
-                    # )
-
-                    # positive = random_shift(
-                    #     imgs=positive,
-                    #     pad=self.ul_random_shift_pad,
-                    #     prob=self.ul_random_shift_prob,
-                    # )
-            #anchor, positive = buffer_to((anchor, positive),
-            #    device=self.agent.device)
-                with torch.no_grad():
-                    c_positive = self.ul_target_encoder(positive)
-                c_anchor = self.ul_encoder(anchor)
-                logits = self.ul_contrast(c_anchor, c_positive)  # anchor mlp in here.
-
-                labels = torch.arange(c_anchor.shape[0],
-                    dtype=torch.long, device=self.device)
-                terminals = torch_utils.tensor(terminals, self.device)
-                valid = valid_from_done(terminals).type(torch.bool)  # use all
-                valid = valid[self.ul_delta_T:].reshape(-1)  # at positions of positive
-                labels[~valid] = IGNORE_INDEX
-
-                ul_loss = self.ul_weight * self.c_e_loss(logits, labels)
-                ul_loss.backward()
-                if self.ul_clip_grad_norm is None:
-                    grad_norm = 0.
-                else:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(
-                        self.ul_parameters(), self.ul_clip_grad_norm)
-                self.ul_optimizer.step()
-
-                # Just logging purposes
-                correct = torch.argmax(logits.detach(), dim=1) == labels
-                accuracy = torch.mean(correct[valid].float())
-                
-                        self.ul_target_update_tau)
-                if self.total_steps % self.ul_target_update_interval == 0:
-                    update_state_dict(self.ul_target_encoder, self.ul_encoder.state_dict(),
-                    #
-                    # loss.backward()
-                    # self.q_eval.optimizer.step()
-                    # do update for q_next()
 
         # for FQI:
         if (self.learn_step_counter + 2) % self.update_freq == 0:

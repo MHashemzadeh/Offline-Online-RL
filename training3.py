@@ -72,7 +72,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -107,9 +107,8 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                    }
 
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
@@ -494,7 +493,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -527,9 +526,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                    "ras_beta": 1.2
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
@@ -703,7 +701,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             ## do update on step offline before running the agent
             # Here pretraining step would be skipped if files already exist 
             # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
-            if not os.path.isfile("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"):
+            if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
                 print("Pre-training")
                 if TTN:
                     loss = nn.learn()
@@ -746,32 +744,24 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                             # print(loss)
 
                 if TTN:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}".format(alg,
-                                                                                en,
-                                                                                mem_size) + ".pt")
+                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
 
-                    T.save(nn.lin_weights, "lin_weights_{}_{}_{}".format(alg,
-                                                                            en,
-                                                                            mem_size) + ".pt")
+                    T.save(nn.lin_weights, "lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}".format(alg,
-                                                                                en,
-                                                                                mem_size) + ".pt")
+                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
 
-                    T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}".format(alg,
-                                                                                     en,
-                                                                                     mem_size) + ".pt")
+                    T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
 
             else:
 
-                print("Weights and states already exists, skipping pretraining!")
+                print("features and lin_weights already exists, skipping pretraining!")
                 if TTN:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
-                    nn.lin_weights = T.load("lin_weights_{}_{}_{}".format(alg, en, mem_size) + ".pt")
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.lin_weights = T.load("lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
                     nn.q_next.load_state_dict(
-                        T.load("feature_next_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                        T.load("feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
 
             ##
             ## end of offline step
@@ -969,7 +959,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -1007,13 +997,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                    "data_aug_type": 'ras',
                    "data_aug_prob": 0.1,
                    "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.4
+                   "ras_alpha": 0.6, #0.6 , 0.8
+                   "ras_beta": 1.2   #1.2 , 1.4
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
@@ -1022,10 +1011,10 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                     ])
 
 
-    output_dir_path = "Offline//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
-                                                                                            nnet_params['data_aug_prob'],
-                                                                                            nnet_params['ras_alpha'],
-                                                                                            nnet_params['ras_beta'])
+    output_dir_path = "Offline//data_augmentation_rep_learn//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
+                                                                                                                         nnet_params['data_aug_prob'],
+                                                                                                                         nnet_params['ras_alpha'],
+                                                                                                                         nnet_params['ras_beta'])
 
     Path(output_dir_path).mkdir(parents=True, exist_ok=True)
 
@@ -1189,7 +1178,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
             ## do offline-step update before running the agent
             ##
-            if not os.path.isfile("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"):
+            if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
+                print("Pre-training")
 
                 if TTN:
                     loss = nn.learn()
@@ -1236,28 +1226,32 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,
                                                                                 en,
-                                                                                mem_size, num_updates_pretrain) + ".pt")
+                                                                                mem_size, 
+                                                                                num_updates_pretrain) + ".pt")
 
                     T.save(nn.lin_weights, "lin_weights_{}_{}_{}_{}".format(alg,
                                                                             en,
-                                                                            mem_size, num_updates_pretrain) + ".pt")
+                                                                            mem_size, 
+                                                                            num_updates_pretrain) + ".pt")
                 else:
                     T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,
                                                                                 en,
-                                                                            mem_size, num_updates_pretrain) + ".pt")
+                                                                                mem_size, 
+                                                                                num_updates_pretrain) + ".pt")
                     T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}_{}".format(alg,
                                                                                 en,
-                                                                                mem_size, num_updates_pretrain) + ".pt")
+                                                                                mem_size, 
+                                                                                num_updates_pretrain) + ".pt")
 
             else:
                 print("features and lin_weights already exist, skipping pretrianing!")
                 if TTN:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
-                    nn.lin_weights = T.load("lin_weights_{}_{}_{}".format(alg, en, mem_size) + ".pt")
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.lin_weights = T.load("lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
                     nn.q_next.load_state_dict(
-                        T.load("feature_next_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                        T.load("feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
             ##
             ## end of offline step
 
