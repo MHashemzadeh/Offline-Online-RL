@@ -249,7 +249,6 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
                               ])
-        print(params)
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -454,7 +453,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     if not os.path.isfile(files_name+".npy"):
         files_name = generate_data()
     else:
-        print(f"Data already exists at: {files_name}+.npy")
+        print(f"Data already exists at: {files_name}.npy")
 
 
     return files_name+'.npy'

@@ -97,13 +97,6 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.1,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
 
     ## TTN
@@ -114,33 +107,14 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    # Data Augmentation Params
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.1]),
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
+                                    ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
                                     ])
-
-
-    output_dir_path = "Online//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
-                                                                                            nnet_params['data_aug_prob'],
-                                                                                            nnet_params['ras_alpha'],
-                                                                                            nnet_params['ras_beta'])
-
-    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
-
-    files_name = "{}//Training_{}_online_env_{}_mem_size_{}_date_{}_hyper_{}".format(output_dir_path,
-                                                                              alg_type, 
-                                                                              en, 
-                                                                              mem_size, 
-                                                                              datetime.today().strftime("%d_%m_%Y"), 
-                                                                              hyper_num
-                                                                            )
-    if rnd:
-        files_name = files_name+'_rnd'
-    if initial_batch:
-        files_name = files_name + '_initialbatch_'
-
-    if alg == 'fqi':
-        log_file = files_name+str(alg)
-    if alg == 'dqn':
-        log_file = files_name+str(alg)
-
+    
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
         TTN = True
@@ -158,6 +132,38 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     num_repeats = num_rep  # 10
 
     hyper = hyperparams[hyper_num]
+
+    #TODO: Add the following params too for sweep
+    #TODO: mem_size
+    output_dir_path = "Online//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
+                                                                                                                                       mem_size,
+                                                                                                                                       hyper_num,
+                                                                                                                                       hyper[0],
+                                                                                                                                       hyper[1],
+                                                                                                                                       hyper[6],
+                                                                                                                                       hyper[7],
+                                                                                                                                       hyper[9],
+                                                                                                                                       hyper[10]
+                                                                                                                                       )
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+
+    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}".format(output_dir_path, 
+                                                                                           alg_type,
+                                                                                           en, 
+                                                                                           mem_size,
+                                                                                           datetime.today().strftime("%d_%m_%Y"), 
+                                                                                           hyper_num
+                                                                                         )
+    if rnd:
+        files_name = files_name+'_rnd'
+    if initial_batch:
+        files_name = files_name + '_initialbatch_'
+
+    if alg == 'fqi':
+        log_file = files_name+str(alg)
+    if alg == 'dqn':
+        log_file = files_name+str(alg)
 
 
     data = dict([('state', []), ('action', []), ('reward', []), ('nstate', []), ('naction', []), ('done', [])])
@@ -518,13 +524,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.1,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
+
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
@@ -533,32 +534,13 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    # Data Augmentation Params
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.1]),
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
+                                    ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
                                     ])
-
-    output_dir_path = "Offline-online//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
-                                                                                            nnet_params['data_aug_prob'],
-                                                                                            nnet_params['ras_alpha'],
-                                                                                            nnet_params['ras_beta'])
-
-    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
-
-    files_name = "{}//Training_{}_offlineonline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
-                                                                                                 alg_type, 
-                                                                                                 en, 
-                                                                                                 mem_size,
-                                                                                                 datetime.today().strftime("%d_%m_%Y"), 
-                                                                                                 hyper_num, 
-                                                                                                 num_updates_pretrain
-                                                                                         )
-    if rnd:
-        files_name = files_name + '_rnd'
-    if initial_batch:
-        files_name = files_name + '_initialbatch_'
-
-    if alg == 'fqi':
-        log_file = files_name + str(alg)
-    if alg == 'dqn':
-        log_file = files_name + str(alg)
 
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
@@ -575,8 +557,43 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     prev_action_flag = 1
     num_repeats = num_rep  # 10
-
     hyper = hyperparams[hyper_num]
+
+    #TODO: Add the following params too for sweep
+    #TODO: num_updates_pre_train 
+    #TODO: mem_size
+
+    output_dir_path = "Offline-online//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
+                                                                                                                                       mem_size,
+                                                                                                                                       hyper_num,
+                                                                                                                                       hyper[0],
+                                                                                                                                       hyper[1],
+                                                                                                                                       hyper[6],
+                                                                                                                                       hyper[7],
+                                                                                                                                       hyper[9],
+                                                                                                                                       hyper[10]
+                                                                                                                                       )
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+
+    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
+                                                                                           alg_type,
+                                                                                           en, 
+                                                                                           mem_size,
+                                                                                           datetime.today().strftime("%d_%m_%Y"), 
+                                                                                           hyper_num,
+                                                                                           num_updates_pretrain
+                                                                                         )
+    if rnd:
+        files_name = files_name + '_rnd'
+    if initial_batch:
+        files_name = files_name + '_initialbatch_'
+
+    if alg == 'fqi':
+        log_file = files_name + str(alg)
+    if alg == 'dqn':
+        log_file = files_name + str(alg)
+
 
     data = dict([('state', []), ('action', []), ('reward', []), ('nstate', []), ('naction', []), ('done', [])])
 
@@ -971,14 +988,6 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                      "replay_memory_size": mem_size,
                      "replay_init_size": 5000,
                      "update_target_net_steps": 1000,
-
-
-                    # Data Augmentation Params
-                #    "data_aug_type": 'ras',
-                #    "data_aug_prob": 0.1,
-                #    "random_shift_pad": 4,
-                #    "ras_alpha": 0.6,
-                #    "ras_beta": 1.2
                      }
 
     ## TTN
@@ -992,13 +1001,6 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.1,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6, #0.6 , 0.8
-                   "ras_beta": 1.2   #1.2 , 1.4
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
@@ -1008,34 +1010,14 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    # Data Augmentation Params
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.1]),
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
+                                    ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
                                     ])
 
-
-    output_dir_path = "Offline//data_augmentation_rep_learn//data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(nnet_params['data_aug_type'],
-                                                                                                                         nnet_params['data_aug_prob'],
-                                                                                                                         nnet_params['ras_alpha'],
-                                                                                                                         nnet_params['ras_beta'])
-
-    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
-
-    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
-                                                                                           alg_type,
-                                                                                           en, 
-                                                                                           mem_size,
-                                                                                           datetime.today().strftime("%d_%m_%Y"), 
-                                                                                           hyper_num,
-                                                                                           num_updates_pretrain
-                                                                                         )
-    if rnd:
-        files_name = files_name + '_rnd'
-
-    if initial_batch:
-        files_name = files_name + '_initialbatch_'
-
-    if alg == 'fqi':
-        log_file = files_name + str(alg)
-    if alg == 'dqn':
-        log_file = files_name + str(alg)
 
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
@@ -1054,6 +1036,44 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     num_repeats = num_rep  # 10
 
     hyper = hyperparams[hyper_num]
+    
+    #TODO: num_updates_pre_train 
+    #TODO: mem_size
+
+    output_dir_path = "Offline//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
+                                                                                                                                       mem_size,
+                                                                                                                                       hyper_num,
+                                                                                                                                       hyper[0],
+                                                                                                                                       hyper[1],
+                                                                                                                                       hyper[6],
+                                                                                                                                       hyper[7],
+                                                                                                                                       hyper[9],
+                                                                                                                                       hyper[10]
+                                                                                                                                       )
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+
+    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
+                                                                                           alg_type,
+                                                                                           en, 
+                                                                                           mem_size,
+                                                                                           datetime.today().strftime("%d_%m_%Y"), 
+                                                                                           hyper_num,
+                                                                                           num_updates_pretrain
+                                                                                         )
+
+
+    if rnd:
+        files_name = files_name + '_rnd'
+
+    if initial_batch:
+        files_name = files_name + '_initialbatch_'
+
+    if alg == 'fqi':
+        log_file = files_name + str(alg)
+    if alg == 'dqn':
+        log_file = files_name + str(alg)
+
 
     data = dict([('state', []), ('action', []), ('reward', []), ('nstate', []), ('naction', []), ('done', [])])
 
