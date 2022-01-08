@@ -109,7 +109,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.1]),
+                                    ("data_aug_prob", [0.0, 0.1]),
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
                                     ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
@@ -134,7 +134,11 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     hyper = hyperparams[hyper_num]
 
     #TODO: Add the following params too for sweep
+    #TODO: num_updates_pre_train 
     #TODO: mem_size
+    #TODO: type_of_augmentation (rep, fqi, both)
+    #TODO: use traget_network 
+    
     output_dir_path = "Online//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
                                                                                                                                        mem_size,
                                                                                                                                        hyper_num,
@@ -536,7 +540,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.1]),
+                                    ("data_aug_prob", [0.0, 0.1]),
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
                                     ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
@@ -562,6 +566,9 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     #TODO: Add the following params too for sweep
     #TODO: num_updates_pre_train 
     #TODO: mem_size
+    #TODO: type_of_augmentation (rep, fqi, both)
+    #TODO: use traget_network 
+
 
     output_dir_path = "Offline-online//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
                                                                                                                                        mem_size,
@@ -1012,7 +1019,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.1]),
+                                    ("data_aug_prob", [0.0, 0.1]),
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
                                     ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
@@ -1037,8 +1044,11 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
     hyper = hyperparams[hyper_num]
     
+    #TODO: Add the following params too for sweep
     #TODO: num_updates_pre_train 
     #TODO: mem_size
+    #TODO: type_of_augmentation (rep, fqi, both)
+    #TODO: use traget_network 
 
     output_dir_path = "Offline//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
                                                                                                                                        mem_size,
