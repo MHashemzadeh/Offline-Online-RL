@@ -218,6 +218,18 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
 
+    # Removing redundant experiments for data_aug_prob = 0
+    hyperparams_filtered = []
+    count = 0
+    for i in range(len(hyperparams)):
+        if(i%8 not in [1,2,3]):
+            hyperparams_filtered.append(hyperparams[i])
+            count += 1
+
+    print(f"Number of Hyperparams: {count}")
+    hyperparams = hyperparams_filtered
+    
+
     with open(log_file + ".txt", 'w') as f:
         print("Start! Seed: {}".format(rand_seed), file=f)
 
