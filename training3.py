@@ -138,27 +138,19 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     #TODO: mem_size
     #TODO: type_of_augmentation (rep, fqi, both)
     #TODO: use traget_network 
-    
-    output_dir_path = "Online//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
-                                                                                                                                       mem_size,
-                                                                                                                                       hyper_num,
-                                                                                                                                       hyper[0],
-                                                                                                                                       hyper[1],
-                                                                                                                                       hyper[6],
-                                                                                                                                       hyper[7],
-                                                                                                                                       hyper[9],
-                                                                                                                                       hyper[10]
-                                                                                                                                       )
+
+    output_dir_path = "Online//Training_{}_online_env_{}_mem_size_{}_hyper_num_{}_date_{}".format(
+                                                                                                 alg_type,
+                                                                                                 en,
+                                                                                                 mem_size,
+                                                                                                 hyper_num,
+                                                                                                 datetime.today().strftime("%d_%m_%Y")
+                                                                                                )
 
     Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+    files_name = "{}//".format(output_dir_path)
 
-    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}".format(output_dir_path, 
-                                                                                           alg_type,
-                                                                                           en, 
-                                                                                           mem_size,
-                                                                                           datetime.today().strftime("%d_%m_%Y"), 
-                                                                                           hyper_num
-                                                                                         )
+
     if rnd:
         files_name = files_name+'_rnd'
     if initial_batch:
@@ -570,27 +562,18 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     #TODO: use traget_network 
 
 
-    output_dir_path = "Offline-online//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
-                                                                                                                                       mem_size,
-                                                                                                                                       hyper_num,
-                                                                                                                                       hyper[0],
-                                                                                                                                       hyper[1],
-                                                                                                                                       hyper[6],
-                                                                                                                                       hyper[7],
-                                                                                                                                       hyper[9],
-                                                                                                                                       hyper[10]
-                                                                                                                                       )
+    output_dir_path = "Offline-online//Training_{}_offline_online_env_{}_mem_size_{}_hyper_num_{}_date_{}".format(
+                                                                                                 alg_type,
+                                                                                                 en,
+                                                                                                 mem_size,
+                                                                                                 hyper_num,
+                                                                                                 datetime.today().strftime("%d_%m_%Y")
+                                                                                                )
 
     Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+    files_name = "{}//".format(output_dir_path)
 
-    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
-                                                                                           alg_type,
-                                                                                           en, 
-                                                                                           mem_size,
-                                                                                           datetime.today().strftime("%d_%m_%Y"), 
-                                                                                           hyper_num,
-                                                                                           num_updates_pretrain
-                                                                                         )
+
     if rnd:
         files_name = files_name + '_rnd'
     if initial_batch:
@@ -1050,27 +1033,16 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     #TODO: type_of_augmentation (rep, fqi, both)
     #TODO: use traget_network 
 
-    output_dir_path = "Offline//mem_size_{}_hyper_num_{}_nn_lr_{}_reg_A_{}_data_aug_type_{}_data_aug_prob_{}_ras_alpha_{}_ras_beta_{}".format(
-                                                                                                                                       mem_size,
-                                                                                                                                       hyper_num,
-                                                                                                                                       hyper[0],
-                                                                                                                                       hyper[1],
-                                                                                                                                       hyper[6],
-                                                                                                                                       hyper[7],
-                                                                                                                                       hyper[9],
-                                                                                                                                       hyper[10]
-                                                                                                                                       )
+    output_dir_path = "Offline//Training_{}_offline_env_{}_mem_size_{}_hyper_num_{}_date_{}".format(
+                                                                                                 alg_type,
+                                                                                                 en,
+                                                                                                 mem_size,
+                                                                                                 hyper_num,
+                                                                                                 datetime.today().strftime("%d_%m_%Y")
+                                                                                                )
 
     Path(output_dir_path).mkdir(parents=True, exist_ok=True)
-
-    files_name = "{}//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(output_dir_path, 
-                                                                                           alg_type,
-                                                                                           en, 
-                                                                                           mem_size,
-                                                                                           datetime.today().strftime("%d_%m_%Y"), 
-                                                                                           hyper_num,
-                                                                                           num_updates_pretrain
-                                                                                         )
+    files_name = "{}//".format(output_dir_path)
 
 
     if rnd:
