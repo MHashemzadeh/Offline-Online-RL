@@ -263,6 +263,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
         # print(f"Params: {params}")
         # print(f"Nnet params: {nnet_params} ")
+        print(f"Gen Data Chosen {hyper}")
+        print(f"Gen data total exps: {len(hyperparams_no_redundant)}")
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
