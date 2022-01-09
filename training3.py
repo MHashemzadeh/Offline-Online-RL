@@ -102,17 +102,17 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
+                                    # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
-                                    
-                                    # Data Augmentation Params -- not required.
-                                    ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0]),
-                                    ("random_shift_pad", [4]),
-                                    ("ras_alpha", [0.6]), #0.6 , 0.8
-                                    ("ras_beta", [1.2])   #1.2 , 1.4
+
+                                    # sparsity params
+                                    ("if_sparsity", [0, 1]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-5, 5], [-10, 10], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2"]),
+                                    ("tilings", [10, 20])
                                     ])
     
     if alg in ("fqi"):
@@ -124,7 +124,15 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     #
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
-    print(f"Hyperparams: {hyperparams}")
+    hyperparams_no_redundant = []
+    
+    # remove redundant experiments.
+    repetitive_experiments = [x for x in range(1, 30)]
+    for ix in range(len(hyperparams)):
+        if ix%60 not in repetitive_experiments:
+            hyperparams_no_redundant.append(hyperparams[ix])
+
+    print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
 
     times = []
     start_time = time.perf_counter()
@@ -132,7 +140,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     prev_action_flag = 1
     num_repeats = num_rep  # 10
 
-    hyper = hyperparams[hyper_num]
+    hyper = hyperparams_no_redundant[hyper_num]
 
     #TODO: Add the following params too for sweep
     #TODO: num_updates_pre_train 
@@ -153,7 +161,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
 
     if rnd:
-        files_name = files_name+'_rnd'
+        files_name = files_name + '_rnd'
     if initial_batch:
         files_name = files_name + '_initialbatch_'
 
@@ -172,13 +180,14 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
-                              # Data Augmentation Params
-                              ("data_aug_type", hyper[6]),
-                              ("data_aug_prob", hyper[7]),
-                              ("random_shift_pad", hyper[8]),
-                              ("ras_alpha", hyper[9]), #0.6 , 0.8
-                              ("ras_beta", hyper[10])   #1.2 , 1.4
+
+                              # sparsity params
+                              ("if_sparsity", hyper[6]),
+                              ("bounds", hyper[7]),
+                              ("layers", hyper[8]),
+                              ("bins", hyper[9])
                               ])
+
         print(f"Params: {params}")
         print(f"Nnet params: {nnet_params}")
 
@@ -572,7 +581,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     hyper = hyperparams_no_redundant[hyper_num]
 
     print(f"Chosen Hyperparams {hyper}")
-
+    
     #TODO: Add the following params too for sweep
     #TODO: num_updates_pre_train 
     #TODO: mem_size
@@ -663,6 +672,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         with open(log_file + ".txt", 'w') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
             # add the list and ids to the file for easy map
+            # make JSON
             for ix in range(len(hyperparams_no_redundant)):
                 to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
                 f.write(to_write + "\n")
@@ -736,7 +746,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             ## do update on step offline before running the agent
             # Here pretraining step would be skipped if files already exist 
             # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
-            if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
+            if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
                 print("Pre-training")
                 if TTN:
                     loss = nn.learn()
@@ -779,24 +789,23 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                             # print(loss)
 
                 if TTN:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
+                    T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
 
-                    T.save(nn.lin_weights, "lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
+                    T.save(nn.lin_weights, "{}//lin_weights_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
+                    T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
 
-                    T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
+                    T.save(nn.q_next.state_dict(), "{}//feature_next_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
 
             else:
 
                 print("features and lin_weights already exists, skipping pretraining!")
                 if TTN:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
-                    nn.lin_weights = T.load("lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
+                    nn.q_eval.load_state_dict(T.load("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.lin_weights = T.load("{}//lin_weights_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
-                    nn.q_next.load_state_dict(
-                        T.load("feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.q_eval.load_state_dict(T.load("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.q_next.load_state_dict(T.load("{}//feature_next_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"))
 
             ##
             ## end of offline step
@@ -1028,13 +1037,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
-                                    
-                                    # Data Augmentation Params -- not required.
-                                    ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0]),
-                                    ("random_shift_pad", [4]),
-                                    ("ras_alpha", [0.6]), #0.6 , 0.8
-                                    ("ras_beta", [1.2])   #1.2 , 1.4
+
+                                    # sparsity params
+                                    ("if_sparsity", [0, 1]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-5, 5], [-10, 10], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2"]),
+                                    ("tilings", [10, 20])
                                     ])
 
 
@@ -1047,6 +1055,15 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     #
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
+    hyperparams_no_redundant = []
+
+    # remove redundant experiments.
+    repetitive_experiments = [x for x in range(1, 30)]
+    for ix in range(len(hyperparams)):
+        if ix%60 not in repetitive_experiments:
+            hyperparams_no_redundant.append(hyperparams[ix])
+
+    print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
 
     times = []
     start_time = time.perf_counter()
@@ -1054,7 +1071,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     prev_action_flag = 1
     num_repeats = num_rep  # 10
 
-    hyper = hyperparams[hyper_num]
+    hyper = hyperparams_no_redundant[hyper_num]
     
     #TODO: Add the following params too for sweep
     #TODO: num_updates_pre_train 
@@ -1095,12 +1112,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
-                              # Data Augmentation Params
-                              ("data_aug_type", hyper[6]),
-                              ("data_aug_prob", hyper[7]),
-                              ("random_shift_pad", hyper[8]),
-                              ("ras_alpha", hyper[9]), #0.6 , 0.8
-                              ("ras_beta", hyper[10])   #1.2 , 1.4
+
+                              # sparsity params
+                              ("if_sparsity", hyper[6]),
+                              ("bounds", hyper[7]),
+                              ("layers", hyper[8]),
+                              ("bins", hyper[9])
                               ])
 
         print(f"Parameters: {params}")
@@ -1215,7 +1232,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
             ## do offline-step update before running the agent
             ##
-            if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
+            if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
                 print("Pre-training")
 
                 if TTN:
@@ -1261,21 +1278,25 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                             # print(loss)
 
                 if TTN:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,
+                    T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path, 
+                                                                                alg,
                                                                                 en,
                                                                                 mem_size, 
                                                                                 num_updates_pretrain) + ".pt")
 
-                    T.save(nn.lin_weights, "lin_weights_{}_{}_{}_{}".format(alg,
+                    T.save(nn.lin_weights, "{}//lin_weights_{}_{}_{}_{}".format(output_dir_path,
+                                                                            alg,
                                                                             en,
                                                                             mem_size, 
                                                                             num_updates_pretrain) + ".pt")
                 else:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,
+                    T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path,
+                                                                                alg,
                                                                                 en,
                                                                                 mem_size, 
                                                                                 num_updates_pretrain) + ".pt")
-                    T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}_{}".format(alg,
+                    T.save(nn.q_next.state_dict(), "{}//feature_next_{}_{}_{}_{}".format(output_dir_path,
+                                                                                alg,
                                                                                 en,
                                                                                 mem_size, 
                                                                                 num_updates_pretrain) + ".pt")
@@ -1283,12 +1304,11 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
             else:
                 print("features and lin_weights already exist, skipping pretrianing!")
                 if TTN:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
-                    nn.lin_weights = T.load("lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
+                    nn.q_eval.load_state_dict(T.load("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.lin_weights = T.load("{}//lin_weights_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
-                    nn.q_next.load_state_dict(
-                        T.load("feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.q_eval.load_state_dict(T.load("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.q_next.load_state_dict(T.load("{}//feature_next_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"))
             ##
             ## end of offline step
 
