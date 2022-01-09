@@ -32,11 +32,11 @@ class TTNAgent_online_offline_mix(object):
         self.fqi_reg_type = nnet_params['fqi_reg_type']
 
         ##### Data Augmentation Params #####
-        self.ras_alpha = nnet_params['ras_alpha'] # The minimum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
-        self.ras_beta = nnet_params['ras_beta'] # The maximum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
-        self.data_aug_type = nnet_params['data_aug_type'] # The type of data augmentation that we are going to use: random_shift (for visual inputs), rsa (for others)
-        self.data_aug_prob = nnet_params['data_aug_prob'] # The probability of data getting augmented
-        self.data_aug_pad = nnet_params['random_shift_pad'] # The number of pixels that will be padded for random shift technique. 4 usually works fine for this so there is no need to tune it
+        self.ras_alpha = other_params['ras_alpha'] # The minimum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
+        self.ras_beta = other_params['ras_beta'] # The maximum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
+        self.data_aug_type = other_params['data_aug_type'] # The type of data augmentation that we are going to use: random_shift (for visual inputs), rsa (for others)
+        self.data_aug_prob = other_params['data_aug_prob'] # The probability of data getting augmented
+        self.data_aug_pad = other_params['random_shift_pad'] # The number of pixels that will be padded for random shift technique. 4 usually works fine for this so there is no need to tune it
 
         self.lr = other_params['nn_lr']
         self.reg_A = other_params['reg_A']

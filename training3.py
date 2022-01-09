@@ -102,7 +102,6 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
-                                    # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
@@ -171,6 +170,12 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("random_shift_pad", hyper[8]),
+                              ("ras_alpha", hyper[9]), #0.6 , 0.8
+                              ("ras_beta", hyper[10])   #1.2 , 1.4
                               ])
         print(f"Params: {params}")
         print(f"Nnet params: {nnet_params}")
@@ -594,6 +599,12 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("random_shift_pad", hyper[8]),
+                              ("ras_alpha", hyper[9]), #0.6 , 0.8
+                              ("ras_beta", hyper[10])   #1.2 , 1.4
                               ])
         print(f"Params: {params}")
         print(f"Nnet params: {nnet_params}")
@@ -1066,6 +1077,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("random_shift_pad", hyper[8]),
+                              ("ras_alpha", hyper[9]), #0.6 , 0.8
+                              ("ras_beta", hyper[10])   #1.2 , 1.4
                               ])
 
         print(f"Parameters: {params}")

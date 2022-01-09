@@ -171,13 +171,6 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": "prev",  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras', #ras for state based, random_shift for image based
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
