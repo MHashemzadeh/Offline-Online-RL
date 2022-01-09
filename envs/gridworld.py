@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from core.utils.torch_utils import random_seed
+from utils.torch_utils import random_seed
 
 
 class GridHardXY:
     def __init__(self, seed=np.random.randint(int(1e5))):
-        random_seed(seed)
+        self.seed(seed)
         self.state_dim = (2,)
         self.action_dim = 4
         self.obstacles_map = self.get_obstacles_map()
@@ -14,6 +14,8 @@ class GridHardXY:
         self.min_x, self.max_x, self.min_y, self.max_y = 0, 14, 0, 14
         self.goal_x, self.goal_y = 9, 9
         self.current_state = None
+        self.transition_counter = 0
+        self.timeout = 100
 
     def generate_state(self, coords):
         return np.array(coords)
@@ -27,10 +29,12 @@ class GridHardXY:
             rx, ry = rand_state
             if not int(self.obstacles_map[rx][ry]) and not (rx == self.goal_x and ry == self.goal_y):
                 self.current_state = rand_state[0], rand_state[1]
+                self.transition_counter = 0
                 return self.generate_state(self.current_state)
 
     def step(self, a):
-        dx, dy = self.actions[a[0]]
+
+        dx, dy = self.actions[a]
         x, y = self.current_state
 
         nx = x + dx
@@ -42,10 +46,14 @@ class GridHardXY:
             x, y = nx, ny
 
         self.current_state = x, y
-        if x == self.goal_x and y == self.goal_y:
-            return self.generate_state([x, y]), np.asarray(1.0), np.asarray(True), ""
+        self.transition_counter += 1 
+        # print(self.transition_counter)
+        if (x == self.goal_x and y == self.goal_y):
+            return self.generate_state([x, y]), 1.0, True, ""
+        elif self.transition_counter == self.timeout:
+            return self.generate_state([x, y]), 0.0, True, ""
         else:
-            return self.generate_state([x, y]), np.asarray(0.0), np.asarray(False), ""
+            return self.generate_state([x, y]), 0.0, False, ""
 
     def get_visualization_segment(self):
         state_coords = [[x, y] for x in range(15)
@@ -88,6 +96,9 @@ class GridHardXY:
             return state
         else:
             return self.current_state
+
+    def seed(self, seed):
+       random_seed(seed) 
 
 
 class GridHardGS(GridHardXY):
@@ -147,7 +158,7 @@ class GridHardRGB(GridHardXY):
 
         state[x][y][1] = 0.0    # setting the green color on
         state[x][y][2] = 255.0  # turning the blue color on
-        return state
+        return np.moveaxis(state, -1, 0) #NOTE: Made it channel last
 
     def get_features(self, state):
         raise NotImplementedError

@@ -19,6 +19,9 @@ import argparse
 # import datetime as date
 from datetime import datetime
 from replay_memory import ReplayBuffer
+from utils.env_utils import process_state_constructor
+from envs.env_constructor import get_env
+from pathlib import Path
 
 # np_load_old = np.load
 
@@ -57,76 +60,19 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     num_steps = num_step_ratio_mem  # 200000
 
     ## select environment
-    if en == "Mountaincar":
-        env = gym.make('MountainCar-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "Acrobot":
-        env = gym.make('Acrobot-v1')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "LunarLander":
-        env = gym.make('LunarLander-v2')
-        input_dim = env.observation_space.shape[0]
-        num_act = 4
-    elif en == "cartpole":
-        env = gym.make('CartPole-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 2
+    env, input_dim, num_act = get_env(en)
 
-    # rand_seed = num_rep * 32  # 332
-    # env.seed(rand_seed)
+    ### Normalize State
+    process_state = process_state_constructor(en)
+
+    # rand_seed = num_rep * 32  # 332 #TODO: T
+    # env.seed(rand_seed) 
     # T.manual_seed(rand_seed)
     # np.random.seed(rand_seed)
 
-    ## normolize states
-    def process_state(state, normalize=True):
-        # states = np.array([state['position'], state['vel']])
-
-        if normalize:
-            if en == "Acrobot":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
-                states[0] = (states[0] + 1) / (2)
-                states[1] = (states[1] + 1) / (2)
-                states[2] = (states[2] + 1) / (2)
-                states[3] = (states[3] + 1) / (2)
-                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
-                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
-            elif en == "LunarLander":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
-                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
-                states[0] = (states[0] - mean[0]) / (deviation[0])
-                states[1] = (states[1] - mean[1]) / (deviation[1])
-                states[2] = (states[2] - mean[2]) / (deviation[2])
-                states[3] = (states[3] - mean[3]) / (deviation[3])
-                states[4] = (states[4] - mean[4]) / (deviation[4])
-                states[5] = (states[5] - mean[5]) / (deviation[5])
-
-            elif en == "cartpole":
-                states = np.array([state[0], state[1], state[2], state[3]])
-                states[0] = states[0]
-                states[1] = states[1]
-                states[2] = states[2]
-                states[3] = states[3]
-
-            elif en == "Mountaincar":
-                states = np.array([state[0], state[1]])
-                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
-                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
-
-            elif en == "catcher":
-                states = np.array([state['player_x'], state['player_vel'], state['fruit_x'], state['fruit_y']])
-                states[0] = (states[0] - 25.5) / 26
-                states[1] = states[1] / 10
-                states[2] = (states[2] - 30) / 22
-                states[3] = (states[3] - 18.5) / 47
-
-        return states
-
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -151,38 +97,24 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
+
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
-                                    # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    
+                                    # Data Augmentation Params -- not required.
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.0]),
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.6]), #0.6 , 0.8
+                                    ("ras_beta", [1.2])   #1.2 , 1.4
                                     ])
-
-    files_name = "Online//Training_{}_online_env_{}_mem_size_{}_date_{}_hyper_{}".format(alg_type, en, mem_size, datetime.today().strftime(
-                                                                                            "%d_%m_%Y"), hyper_num
-                                                                                        )
-    if rnd:
-        files_name = files_name+'_rnd'
-    if initial_batch:
-        files_name = files_name + '_initialbatch_'
-
-    if alg == 'fqi':
-        log_file = files_name+str(alg)
-    if alg == 'dqn':
-        log_file = files_name+str(alg)
-
+    
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
         TTN = True
@@ -192,6 +124,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     #
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
+    print(f"Hyperparams: {hyperparams}")
 
     times = []
     start_time = time.perf_counter()
@@ -200,6 +133,34 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     num_repeats = num_rep  # 10
 
     hyper = hyperparams[hyper_num]
+
+    #TODO: Add the following params too for sweep
+    #TODO: num_updates_pre_train 
+    #TODO: mem_size
+    #TODO: type_of_augmentation (rep, fqi, both)
+    #TODO: use traget_network 
+
+    output_dir_path = "Online//Training_{}_online_env_{}_mem_size_{}_hyper_num_{}_date_{}".format(
+                                                                                                 alg_type,
+                                                                                                 en,
+                                                                                                 mem_size,
+                                                                                                 hyper_num,
+                                                                                                 datetime.today().strftime("%d_%m_%Y")
+                                                                                                )
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+    files_name = "{}//".format(output_dir_path)
+
+
+    if rnd:
+        files_name = files_name+'_rnd'
+    if initial_batch:
+        files_name = files_name + '_initialbatch_'
+
+    if alg == 'fqi':
+        log_file = files_name+str(alg)
+    if alg == 'dqn':
+        log_file = files_name+str(alg)
 
 
     data = dict([('state', []), ('action', []), ('reward', []), ('nstate', []), ('naction', []), ('done', [])])
@@ -211,7 +172,15 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("random_shift_pad", hyper[8]),
+                              ("ras_alpha", hyper[9]), #0.6 , 0.8
+                              ("ras_beta", hyper[10])   #1.2 , 1.4
                               ])
+        print(f"Params: {params}")
+        print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -521,69 +490,19 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     num_steps = num_step_ratio_mem  # 200000
 
     ## select environment
-    if en == "Mountaincar":
-        env = gym.make('MountainCar-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "Acrobot":
-        env = gym.make('Acrobot-v1')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "LunarLander":
-        env = gym.make('LunarLander-v2')
-        input_dim = env.observation_space.shape[0]
-        num_act = 4
-    elif en == "cartpole":
-        env = gym.make('CartPole-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 2
+    env, input_dim, num_act = get_env(en)
+
+    ### Normalize State
+    process_state = process_state_constructor(en)
 
     # rand_seed = num_rep * 32  # 332
     # env.seed(rand_seed)
     # T.manual_seed(rand_seed)
     # np.random.seed(rand_seed)
 
-    ## normolize states
-    def process_state(state, normalize=True):
-        # states = np.array([state['position'], state['vel']])
-
-        if normalize:
-            if en == "Acrobot":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
-                states[0] = (states[0] + 1) / (2)
-                states[1] = (states[1] + 1) / (2)
-                states[2] = (states[2] + 1) / (2)
-                states[3] = (states[3] + 1) / (2)
-                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
-                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
-            elif en == "LunarLander":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
-                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
-                states[0] = (states[0] - mean[0]) / (deviation[0])
-                states[1] = (states[1] - mean[1]) / (deviation[1])
-                states[2] = (states[2] - mean[2]) / (deviation[2])
-                states[3] = (states[3] - mean[3]) / (deviation[3])
-                states[4] = (states[4] - mean[4]) / (deviation[4])
-                states[5] = (states[5] - mean[5]) / (deviation[5])
-
-            elif en == "cartpole":
-                states = np.array([state[0], state[1], state[2], state[3]])
-                states[0] = states[0]
-                states[1] = states[1]
-                states[2] = states[2]
-                states[3] = states[3]
-
-            elif en == "Mountaincar":
-                states = np.array([state[0], state[1]])
-                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
-                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
-
-        return states
-
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -608,28 +527,70 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
+
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+
+                                    # sparsity params
+                                    ("if_sparsity", [0, 1]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-5, 5], [-10, 10], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2"]),
+                                    ("tilings", [10, 20])
                                     ])
 
-    files_name = "Offline-online//Training_{}_offlineonline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(alg_type, en, mem_size,
-                                                                                         datetime.today().strftime(
-                                                                                             "%d_%m_%Y"), hyper_num, num_updates_pretrain
-                                                                                         )
+    if alg in ("fqi"):
+        hyper_sets = hyper_sets_lstdq
+        TTN = True
+    elif alg == "dqn":
+        hyper_sets = hyper_sets_DQN
+        TTN = False
+    
+    hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
+    hyperparams = hyperparams_all
+    hyperparams_no_redundant = []
+    
+    # remove redundant experiments.
+    repetitive_experiments = [x for x in range(1, 30)]
+    for ix in range(len(hyperparams)):
+        if ix%60 not in repetitive_experiments:
+            hyperparams_no_redundant.append(hyperparams[ix])
+
+    print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
+
+    times = []
+    start_time = time.perf_counter()
+
+    prev_action_flag = 1
+    num_repeats = num_rep  # 10
+    hyper = hyperparams_no_redundant[hyper_num]
+
+    print(f"Chosen Hyperparams {hyper}")
+
+    #TODO: Add the following params too for sweep
+    #TODO: num_updates_pre_train 
+    #TODO: mem_size
+    #TODO: type_of_augmentation (rep, fqi, both)
+    #TODO: use traget_network 
+
+    output_dir_path = "Offline-online//Training_{}_offline_online_env_{}_mem_size_{}_hyper_num_{}_date_{}".format(
+                                                                                                 alg_type,
+                                                                                                 en,
+                                                                                                 mem_size,
+                                                                                                 hyper_num,
+                                                                                                 datetime.today().strftime("%d_%m_%Y")
+                                                                                                )
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+    files_name = "{}//".format(output_dir_path)
+
+
     if rnd:
         files_name = files_name + '_rnd'
     if initial_batch:
@@ -640,23 +601,6 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     if alg == 'dqn':
         log_file = files_name + str(alg)
 
-    if alg in ("fqi"):
-        hyper_sets = hyper_sets_lstdq
-        TTN = True
-    elif alg == "dqn":
-        hyper_sets = hyper_sets_DQN
-        TTN = False
-    #
-    hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
-    hyperparams = hyperparams_all
-
-    times = []
-    start_time = time.perf_counter()
-
-    prev_action_flag = 1
-    num_repeats = num_rep  # 10
-
-    hyper = hyperparams[hyper_num]
 
     data = dict([('state', []), ('action', []), ('reward', []), ('nstate', []), ('naction', []), ('done', [])])
 
@@ -667,7 +611,16 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+
+                              # sparsity params
+                              ("if_sparsity", hyper[6]),
+                              ("bounds", hyper[7]),
+                              ("layers", hyper[8]),
+                              ("bins", hyper[9])
                               ])
+
+        print(f"Params: {params}")
+        print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -709,6 +662,10 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
         with open(log_file + ".txt", 'w') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
+            # add the list and ids to the file for easy map
+            for ix in range(len(hyperparams_no_redundant)):
+                to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
+                f.write(to_write + "\n")
 
         # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
 
@@ -777,10 +734,10 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         for itr in range(1):
 
             ## do update on step offline before running the agent
-
+            # Here pretraining step would be skipped if files already exist 
             # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
-            if not os.path.isfile("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"):
-
+            if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
+                print("Pre-training")
                 if TTN:
                     loss = nn.learn()
 
@@ -822,30 +779,24 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                             # print(loss)
 
                 if TTN:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}".format(alg,
-                                                                                en,
-                                                                                mem_size) + ".pt")
+                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
 
-                    T.save(nn.lin_weights, "lin_weights_{}_{}_{}".format(alg,
-                                                                            en,
-                                                                            mem_size) + ".pt")
+                    T.save(nn.lin_weights, "lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}".format(alg,
-                                                                                en,
-                                                                                mem_size) + ".pt")
+                    T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
 
-                    T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}".format(alg,
-                                                                                     en,
-                                                                                     mem_size) + ".pt")
+                    T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
 
             else:
+
+                print("features and lin_weights already exists, skipping pretraining!")
                 if TTN:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
-                    nn.lin_weights = T.load("lin_weights_{}_{}_{}".format(alg, en, mem_size) + ".pt")
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.lin_weights = T.load("lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
                     nn.q_next.load_state_dict(
-                        T.load("feature_next_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                        T.load("feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
 
             ##
             ## end of offline step
@@ -1011,89 +962,39 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                  fqi_reg_type, initial_batch, rnd, num_updates_pretrain, epsilon_stop_training, status):
 
 
-    print("offline", hyper_num, en, mem_size)
+    print("offline", hyper_num, en, mem_size) #mem)_size default in offline experiment is 10K 
 
     data_lengths = [mem_size, 6000, 10000, 20000, 30000]
-    data_length = data_lengths[data_length_num]
+    data_length = data_lengths[data_length_num] #data_length_num default = 0 ; data_length = mem_size
 
     fqi_reps = [1, 10, 50, 100, 300]
-    fqi_rep = fqi_reps[fqi_rep_num]
+    fqi_rep = fqi_reps[fqi_rep_num] #default fqi_rep_num = 0 ; fqi_reps = 1 ; number of fqi repeats
 
     if feature == 'tc':
         tilecoding = 1
     else:
         tilecoding = 0
 
-    alg = alg_type
+    alg = alg_type #fqi
 
     gamma = 0.99
 
-    num_steps = num_step_ratio_mem  # 200000
+    num_steps = num_step_ratio_mem  # 70K for offline default
 
     ## select environment
-    if en == "Mountaincar":
-        env = gym.make('MountainCar-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "Acrobot":
-        env = gym.make('Acrobot-v1')
-        input_dim = env.observation_space.shape[0]
-        num_act = 3
-    elif en == "LunarLander":
-        env = gym.make('LunarLander-v2')
-        input_dim = env.observation_space.shape[0]
-        num_act = 4
-    elif en == "cartpole":
-        env = gym.make('CartPole-v0')
-        input_dim = env.observation_space.shape[0]
-        num_act = 2
+    env, input_dim, num_act = get_env(en)
 
+    ### Normalize State
+    process_state = process_state_constructor(en)
+    
     # rand_seed = num_rep * 32  # 332
     # env.seed(rand_seed)
     # T.manual_seed(rand_seed)
     # np.random.seed(rand_seed)
 
-    ## normolize states
-    def process_state(state, normalize=True):
-        # states = np.array([state['position'], state['vel']])
-
-        if normalize:
-            if en == "Acrobot":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5]])
-                states[0] = (states[0] + 1) / (2)
-                states[1] = (states[1] + 1) / (2)
-                states[2] = (states[2] + 1) / (2)
-                states[3] = (states[3] + 1) / (2)
-                states[4] = (states[4] + (4 * np.pi)) / (2 * 4 * np.pi)
-                states[5] = (states[5] + (9 * np.pi)) / (2 * 4 * np.pi)
-            elif en == "LunarLander":
-                states = np.array([state[0], state[1], state[2], state[3], state[4], state[5], state[6], state[7]])
-                mean = [0, 0.9, 0, -0.6, 0, 0, 0, 0]
-                deviation = [0.35, 0.6, 0.7, 0.6, 0.5, 0.5, 1.0, 1.0]
-                states[0] = (states[0] - mean[0]) / (deviation[0])
-                states[1] = (states[1] - mean[1]) / (deviation[1])
-                states[2] = (states[2] - mean[2]) / (deviation[2])
-                states[3] = (states[3] - mean[3]) / (deviation[3])
-                states[4] = (states[4] - mean[4]) / (deviation[4])
-                states[5] = (states[5] - mean[5]) / (deviation[5])
-
-            elif en == "cartpole":
-                states = np.array([state[0], state[1], state[2], state[3]])
-                states[0] = states[0]
-                states[1] = states[1]
-                states[2] = states[2]
-                states[3] = states[3]
-
-            elif en == "Mountaincar":
-                states = np.array([state[0], state[1]])
-                states[0] = (states[0] + 1.2) / (0.6 + 1.2)
-                states[1] = (states[1] + 0.07) / (0.07 + 0.07)
-
-        return states
-
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -1105,14 +1006,6 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                      "replay_memory_size": mem_size,
                      "replay_init_size": 5000,
                      "update_target_net_steps": 1000,
-
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                      }
 
     ## TTN
@@ -1126,39 +1019,24 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    
+                                    # Data Augmentation Params -- not required.
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.0]),
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.6]), #0.6 , 0.8
+                                    ("ras_beta", [1.2])   #1.2 , 1.4
                                     ])
 
-    files_name = "Offline//Training_{}_offline_env_{}_mem_size_{}_date_{}_hyper_{}_training_{}".format(alg_type, en, mem_size,
-                                                                                         datetime.today().strftime(
-                                                                                             "%d_%m_%Y"), hyper_num, num_updates_pretrain
-                                                                                         )
-    if rnd:
-        files_name = files_name + '_rnd'
-
-    if initial_batch:
-        files_name = files_name + '_initialbatch_'
-
-    if alg == 'fqi':
-        log_file = files_name + str(alg)
-    if alg == 'dqn':
-        log_file = files_name + str(alg)
 
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
@@ -1177,6 +1055,36 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     num_repeats = num_rep  # 10
 
     hyper = hyperparams[hyper_num]
+    
+    #TODO: Add the following params too for sweep
+    #TODO: num_updates_pre_train 
+    #TODO: mem_size
+    #TODO: type_of_augmentation (rep, fqi, both)
+    #TODO: use traget_network 
+
+    output_dir_path = "Offline//Training_{}_offline_env_{}_mem_size_{}_hyper_num_{}_date_{}".format(
+                                                                                                 alg_type,
+                                                                                                 en,
+                                                                                                 mem_size,
+                                                                                                 hyper_num,
+                                                                                                 datetime.today().strftime("%d_%m_%Y")
+                                                                                                )
+
+    Path(output_dir_path).mkdir(parents=True, exist_ok=True)
+    files_name = "{}//".format(output_dir_path)
+
+
+    if rnd:
+        files_name = files_name + '_rnd'
+
+    if initial_batch:
+        files_name = files_name + '_initialbatch_'
+
+    if alg == 'fqi':
+        log_file = files_name + str(alg)
+    if alg == 'dqn':
+        log_file = files_name + str(alg)
+
 
     data = dict([('state', []), ('action', []), ('reward', []), ('nstate', []), ('naction', []), ('done', [])])
 
@@ -1187,7 +1095,16 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("random_shift_pad", hyper[8]),
+                              ("ras_alpha", hyper[9]), #0.6 , 0.8
+                              ("ras_beta", hyper[10])   #1.2 , 1.4
                               ])
+
+        print(f"Parameters: {params}")
+        print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -1227,7 +1144,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
-        with open(log_file + ".txt", 'w') as f:
+        with open(log_file + ".txt", 'a') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
 
         # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
@@ -1298,7 +1215,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
             ## do offline-step update before running the agent
             ##
-            if not os.path.isfile("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"):
+            if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
+                print("Pre-training")
 
                 if TTN:
                     loss = nn.learn()
@@ -1324,6 +1242,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                 #     loss1= loss
                 #     t += 1
 
+                # How do you control number of fqi updates in pre-train offline?
+
                 batch_size = 64
                 for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
                     num_iteration_feature = int(mem_size / batch_size)
@@ -1343,27 +1263,32 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,
                                                                                 en,
-                                                                                mem_size, num_updates_pretrain) + ".pt")
+                                                                                mem_size, 
+                                                                                num_updates_pretrain) + ".pt")
 
                     T.save(nn.lin_weights, "lin_weights_{}_{}_{}_{}".format(alg,
                                                                             en,
-                                                                            mem_size, num_updates_pretrain) + ".pt")
+                                                                            mem_size, 
+                                                                            num_updates_pretrain) + ".pt")
                 else:
                     T.save(nn.q_eval.state_dict(), "feature_{}_{}_{}_{}".format(alg,
                                                                                 en,
-                                                                            mem_size, num_updates_pretrain) + ".pt")
+                                                                                mem_size, 
+                                                                                num_updates_pretrain) + ".pt")
                     T.save(nn.q_next.state_dict(), "feature_next_{}_{}_{}_{}".format(alg,
                                                                                 en,
-                                                                                mem_size, num_updates_pretrain) + ".pt")
+                                                                                mem_size, 
+                                                                                num_updates_pretrain) + ".pt")
 
             else:
+                print("features and lin_weights already exist, skipping pretrianing!")
                 if TTN:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
-                    nn.lin_weights = T.load("lin_weights_{}_{}_{}".format(alg, en, mem_size) + ".pt")
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
+                    nn.lin_weights = T.load("lin_weights_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt")
                 else:
-                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                    nn.q_eval.load_state_dict(T.load("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
                     nn.q_next.load_state_dict(
-                        T.load("feature_next_{}_{}_{}".format(alg, en, mem_size) + ".pt"))
+                        T.load("feature_next_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"))
             ##
             ## end of offline step
 
@@ -1411,6 +1336,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                           "avegar over 10 episode:", round(np.mean(run_avgreturns), 3),
                           "avegare return across last 100 episodes:", round(np.mean(run_returns[-100:]), 3),
                           "state values:", (q_values_episode / episode_length), episode_length)
+
+                    with open(log_file + ".txt", 'a') as f:
+                        print(episodes, i, round(val, 2), ret, "number episode from 10:", count_10epi,
+                          "avegar over 10 episode:", round(np.mean(run_avgreturns), 3),
+                          "avegare return across last 100 episodes:", round(np.mean(run_returns[-100:]), 3),
+                          "state values:", (q_values_episode / episode_length), episode_length, file=f)
 
 
 
@@ -1503,22 +1434,3 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     np.save(files_name + 'hyperparam_final_stdreturns', np.std(hyperparam_returns, axis=0))
     np.save(files_name + 'hyperparam_final_stdvalues', np.std(hyperparam_values, axis=0))
     np.save(files_name + 'hyperparam_final_stdepisodes', np.std(hyperparam_episodes, axis=0))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

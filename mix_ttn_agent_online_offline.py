@@ -7,9 +7,10 @@ from torch.autograd import Variable
 from utils.data_augs import *
 # from sklearn.linear_model import Ridge
 from tc.utils.tiles3 import *
+import warnings
+
 # from numba import jit
 # import nvidia_smi
-
 
 class TTNAgent_online_offline_mix(object):
     def __init__(self, gamma, nnet_params, other_params, input_dims=4, num_units_rep=128, dir=None, offline=False,
@@ -29,14 +30,19 @@ class TTNAgent_online_offline_mix(object):
         self.batch_size = nnet_params['batch_size']
         self.fqi_reg_type = nnet_params['fqi_reg_type']
 
-        ##### Data Augmentation Params #####
-        self.ras_alpha = nnet_params['ras_alpha']
-        self.ras_beta = nnet_params['ras_beta']
-        self.data_aug_type = nnet_params['data_aug_type']
-        self.data_aug_prob = nnet_params['data_aug_prob']
-        self.data_aug_pad = nnet_params['random_shift_pad']
+        # ##### Data Augmentation Params #####
+        # self.ras_alpha = other_params['ras_alpha'] # The minimum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
+        # self.ras_beta = other_params['ras_beta'] # The maximum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
+        # self.data_aug_type = other_params['data_aug_type'] # The type of data augmentation that we are going to use: random_shift (for visual inputs), rsa (for others)
+        # self.data_aug_prob = other_params['data_aug_prob'] # The probability of data getting augmented
+        # self.data_aug_pad = other_params['random_shift_pad'] # The number of pixels that will be padded for random shift technique. 4 usually works fine for this so there is no need to tune it
 
-        
+        # sparsity parameters
+        self.if_sparsity = other_params["if_sparsity"]
+        self.tile_min, self.tile_max = other_params["bounds"]
+        self.layer_to_apply_sparsity_on = other_params["layers"]
+        self.bins = other_params["bins"]
+
         self.lr = other_params['nn_lr']
         self.reg_A = other_params['reg_A']
         self.data_length = other_params['data_length']
@@ -58,14 +64,21 @@ class TTNAgent_online_offline_mix(object):
         self.min = 100
         self.num_tiles = num_tile
         self.num_tilings = num_tiling
-        self.hash_num = (self.num_tiles ** self.input_dims) * self.num_tilings
-        self.iht = IHT(self.hash_num)
-        self.status = status
 
-        if self.input_dims == 4:
-            self.obs_limits = [[-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0]]
+        if isinstance(self.input_dims, int): 
+            self.hash_num = (self.num_tiles ** self.input_dims) * self.num_tilings
+            self.iht = IHT(self.hash_num)
         else:
-            self.obs_limits = [[-1.2, 0.6, 1.8], [-0.07, 0.07, 0.14]]
+            warnings.warn('Tile coding is not defined for visual inputs!')
+            
+        self.status = status
+        if isinstance(self.input_dims, int): 
+            if self.input_dims == 4:
+                self.obs_limits = [[-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0], [-1, 1.0, 2.0]]
+            else:
+                self.obs_limits = [[-1.2, 0.6, 1.8], [-0.07, 0.07, 0.14]]
+        else:
+            warnings.warn('Tile coding is not defined for visual inputs!')
 
         self.update_feature = False
         self.method = method_sarsa
@@ -75,17 +88,40 @@ class TTNAgent_online_offline_mix(object):
 
         self.memory = ReplayBuffer(nnet_params['replay_memory_size'], input_dims, nnet_params['num_actions'],
                                    self.offline, self.memory_load_direction)
+
         # self.memory = self.assign_memory(nnet_params['replay_memory_size'], nnet_params['num_actions'])
         # self.q_eval,self.features, self.pred_states
+        if isinstance(self.input_dims, int): 
+            self.q_eval = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims,
+                                    if_sparsity=self.if_sparsity,
+                                    tile_max=self.tile_max,
+                                    tile_min=self.tile_min,
+                                    bins=self.bins,
+                                    layers_to_apply=self.layer_to_apply_sparsity_on,
+                                    number_unit=self.number_unit,
+                                    num_units_rep=self.num_units_rep)
 
-        self.q_eval = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
-                                 input_dims=self.input_dims,
-                                 number_unit=self.number_unit,
-                                 num_units_rep=self.num_units_rep)
-        self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
-                                 input_dims=self.input_dims,
-                                 number_unit=self.number_unit,
-                                 num_units_rep=self.num_units_rep)
+            self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims,
+                                    if_sparsity=self.if_sparsity,
+                                    tile_max=self.tile_max,
+                                    tile_min=self.tile_min,
+                                    bins=self.bins,
+                                    layers_to_apply=self.layer_to_apply_sparsity_on,
+                                    number_unit=self.number_unit,
+                                    num_units_rep=self.num_units_rep)
+
+        elif len(self.input_dims) == 3: #TODO: this part needs to be just for maze so maybe we have to add the environment as part of this class input. This part should be modified for minatar
+            self.q_eval = TTNNetworkMaze(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims, num_units_rep=self.num_units_rep)
+
+            self.q_next = TTNNetworkMaze(self.beta1, self.beta2, self.lr, self.n_actions,
+                                    input_dims=self.input_dims, num_units_rep=self.num_units_rep)            
+        else:
+            raise ValueError('Tile coding is not defined for this specifc input shape: {}'.format(self.input_dims))
+
+
         # self.q_next, self.features_next, self.pred_states_next
         # self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
         #                             input_dims=self.input_dims,
@@ -93,6 +129,8 @@ class TTNAgent_online_offline_mix(object):
         #                             chkpt_dir=self.chkpt_dir, number_unit=128, num_units_rep=self.num_units_rep)
 
         if self.tilecoding:
+            if not isinstance(self.input_dims, int):
+                raise ValueError('Tile coding cannot be used for visual inputs.')
             self.num_fe = self.hash_num + 1
         else:
             self.num_fe = self.num_units_rep + 1
@@ -160,7 +198,11 @@ class TTNAgent_online_offline_mix(object):
     # @jit(target='cuda')
     # @jit
     def decrement_epsilon(self):
+        
+        #TODO: if TTN use fix , if DQN use decrement
         self.epsilon = self.epsilon
+
+
         # self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
         # self.epsilon = self.eps_init * (self.eps_final ** (self.global_step / self.eps_decay_steps)) if self.epsilon > self.eps_final else self.eps_final
 
@@ -215,6 +257,8 @@ class TTNAgent_online_offline_mix(object):
         if self.memory.mem_cntr < self.batch_size:
             return
 
+
+        #Representation learning part, i.e., Q-value learning
         for mmm in range(1):
 
             # self.learn_step_counter += 1
@@ -225,26 +269,7 @@ class TTNAgent_online_offline_mix(object):
             # self.replace_target_network()
 
             states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction()
-            indices = np.arange(self.batch_size)
-
-
-            #### Data Augmentation #####
-            if self.data_aug_prob > 0.:
-                print('augmenting data')
-                if self.data_aug_type == 'random_shift':
-
-                    states = random_shift(states, pad=self.random_shift_pad, p=self.data_aug_prob)
-                    states_ = random_shift(states_, pad=self.random_shift_pad, p=self.data_aug_prob) 
-
-                elif self.data_aug_type == 'ras':
-
-                    states = random_amplitude_scaling(states, alpha=self.ras_alpha, beta=self.ras_beta, 
-                                                        prob=self.data_aug_prob, multivariate=False)
-
-                    states_ = random_amplitude_scaling(states_, alpha=self.ras_alpha, beta=self.ras_beta, 
-                                                        prob=self.data_aug_prob, multivariate=False) 
-                else:
-                    raise ValueError('Data Augmentation type is not valid: ', data_aug_type)                                                       
+            indices = np.arange(self.batch_size)                                                 
 
             # q_pred = self.q_eval.forward(states)[indices, actions]
             q_pred_all, features_all, pred_states_all = self.q_eval.forward(states)
@@ -262,6 +287,7 @@ class TTNAgent_online_offline_mix(object):
             # q_next = self.q_next.forward(states_).max(dim=1)[0]
 
             # loss = 0
+            #TODO: Use target network here to make consistent with offline.
             if self.loss_features == "semi_MSTDE":
                 with torch.no_grad():
                     q_next_all, features_next, pred_states_next = self.q_eval.forward(states_)
@@ -292,82 +318,11 @@ class TTNAgent_online_offline_mix(object):
                 # print(q_pred.data, q_target.data)
                 loss.backward()
                 self.q_eval.optimizer.step()
-            #
-            # loss.backward()
-            # self.q_eval.optimizer.step()
-            # do update for q_next()
-            if self.loss_features == "ATC":
-                batch_size_cl = 32
-                augmentation_padding = 4
-                augmentation_prob = 0.1
-                delta = 3
-                target_update_interval = 1
-                ul_target_update_tau = 0.01
 
-                ########### Computing the contrastive loss ###########
-                # Currently it is implemented only with a single environment in mind and one repetition
-                #print('Calculating CL loss')
-                self.ul_optimizer.zero_grad()
-                states, actions, rewards, next_states, _, terminals = self.sample_buffer_nextaction_consequtive(batch_size_cl)
-                #print(terminals)
-                states = self.cfg.state_normalizer(states)
-                anchor = states[:-self.ul_delta_T]
-                positive = states[self.ul_delta_T:]
-
-                #print('anchor: ', anchor.shape)        
-                #print('positive: ', positive.shape)
-                #print(self.ul_random_shift_prob)
-                #print(self.ul_random_shift_pad)
-                if self.ul_random_shift_prob > 0.:
-
-                    anchor = random_shift(
-                        imgs=anchor,
-                        pad=self.ul_random_shift_pad,
-                        prob=self.ul_random_shift_prob,
-                    )
-
-                    positive = random_shift(
-                        imgs=positive,
-                        pad=self.ul_random_shift_pad,
-                        prob=self.ul_random_shift_prob,
-                    )
-            #anchor, positive = buffer_to((anchor, positive),
-            #    device=self.agent.device)
-                with torch.no_grad():
-                    c_positive = self.ul_target_encoder(positive)
-                c_anchor = self.ul_encoder(anchor)
-                logits = self.ul_contrast(c_anchor, c_positive)  # anchor mlp in here.
-
-                labels = torch.arange(c_anchor.shape[0],
-                    dtype=torch.long, device=self.device)
-                terminals = torch_utils.tensor(terminals, self.device)
-                valid = valid_from_done(terminals).type(torch.bool)  # use all
-                valid = valid[self.ul_delta_T:].reshape(-1)  # at positions of positive
-                labels[~valid] = IGNORE_INDEX
-
-                ul_loss = self.ul_weight * self.c_e_loss(logits, labels)
-                ul_loss.backward()
-                if self.ul_clip_grad_norm is None:
-                    grad_norm = 0.
-                else:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(
-                        self.ul_parameters(), self.ul_clip_grad_norm)
-                self.ul_optimizer.step()
-
-                correct = torch.argmax(logits.detach(), dim=1) == labels
-                accuracy = torch.mean(correct[valid].float())
-                
-                if self.total_steps % self.ul_target_update_interval == 0:
-                    update_state_dict(self.ul_target_encoder, self.ul_encoder.state_dict(),
-                        self.ul_target_update_tau)
-                    #
-                    # loss.backward()
-                    # self.q_eval.optimizer.step()
-                    # do update for q_next()
 
         # for FQI:
         if (self.learn_step_counter + 2) % self.update_freq == 0:
-            print("FQI")
+            print("nn. learn FQI: ", self.learn_step_counter)
             for rep in range(self.fqi_rep):
                 # print("num rep:", self.fqi_rep)
                 with torch.no_grad():
@@ -387,6 +342,11 @@ class TTNAgent_online_offline_mix(object):
                         #     self.data_length)
                         states_all, actions_all, rewards_all, states_all_, actions_all_, dones_all = self.memory.sample_buffer_nextaction_consequtive_chunk(self.data_length)
 
+                    #Keeping things consistent with previous code.
+                    self.states_all = states_all
+                    self.states_all_ = states_all_
+
+
                     self.states_all_ch = states_all
                     self.actions_all_ch = actions_all
                     self.rewards_all_ch = rewards_all
@@ -405,30 +365,28 @@ class TTNAgent_online_offline_mix(object):
                     # self.lin_values = T.mm(features, self.lin_weights)
 
                     q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(states_all_ch_)
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     maxlinq[dones_all_ch] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
                     expectedsarsa[dones_all_ch] = 0
 
                     targets = rewards_all_ch + self.gamma * maxlinq
                     # targets = rewards_all_ch + self.gamma * expectedsarsa
 
                     _, features_allmem, _ = self.q_eval.forward(states_all_ch)
-                    features_allmem_bias = T.cat(
-                        (features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
-                    feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions,
-                                             features_allmem_bias.shape[1]).to(self.q_eval.device)
+                    feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions, features_allmem_bias.shape[1]).to(self.q_eval.device)
 
                     # for i in range(features_allmem_bias.shape[0]):
                     #     feats_current[i, actions_all_ch[i], :] = features_allmem_bias[i, :]
 
-                    features_allmem_bias_re = T.reshape(features_allmem_bias, (
-                    features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                    features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                    
                     actions_all_re1 = T.reshape(actions_all_ch, (actions_all_ch.shape[0], 1, 1))
                     actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
                     feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
@@ -617,7 +575,7 @@ class TTNAgent_online_offline_mix(object):
 
         # for FQI:
         if (self.learn_step_counter + 2) % self.update_freq == 0:
-            print("FQI")
+            print("nn.learn_nn_feature_fqi FQI: ", self.learn_step_counter)
             for rep in range(self.fqi_rep):
                 # print("num rep:", self.fqi_rep)
                 with torch.no_grad():
@@ -655,13 +613,13 @@ class TTNAgent_online_offline_mix(object):
                     # self.lin_values = T.mm(features, self.lin_weights)
 
                     q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(states_all_ch_)
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
+
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     maxlinq[dones_all_ch] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
                     expectedsarsa[dones_all_ch] = 0
 
                     targets = rewards_all_ch + self.gamma * maxlinq
@@ -677,8 +635,7 @@ class TTNAgent_online_offline_mix(object):
                     # for i in range(features_allmem_bias.shape[0]):
                     #     feats_current[i, actions_all_ch[i], :] = features_allmem_bias[i, :]
 
-                    features_allmem_bias_re = T.reshape(features_allmem_bias, (
-                        features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                    features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
                     actions_all_re1 = T.reshape(actions_all_ch, (actions_all_ch.shape[0], 1, 1))
                     actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
                     feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
@@ -694,8 +651,7 @@ class TTNAgent_online_offline_mix(object):
                         # b = T.mm(A_tr, T.unsqueeze(targets, 1)) + self.reg_A * T.reshape(T.transpose(self.lin_weights.reshape(-1, 1), 0, 1), [-1,1])
                         # print(A_tr.shape, A.shape, b.shape, targets.shape)
                         # new_weights = T.solve(b, A)[0]
-                        new_weights = T.lstsq(b, A)[
-                            0]  # T.mm(A.inverse(), b) #T.lstsq(b, A)[0]  #T.mm(A.inverse(), b) #tf.matrix_solve(A, b)
+                        new_weights = T.lstsq(b, A)[0]  # T.mm(A.inverse(), b) #T.lstsq(b, A)[0]  #T.mm(A.inverse(), b) #tf.matrix_solve(A, b)
 
                     elif self.fqi_reg_type == 'l2':
                         A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
@@ -762,7 +718,6 @@ class TTNAgent_online_offline_mix(object):
                 else:
                     L = self.states_all_ch.shape[0]
 
-
     def tilecoding_feature(self):
 
         if self.update_feature == False:
@@ -818,13 +773,11 @@ class TTNAgent_online_offline_mix(object):
 
                     # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
 
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     # maxlinq[self.dones_all_ch[ctr*L: ctr*L+L]] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
 
                     # actions = self.actions_all_ch_[ctr * L: ctr * L + L].to(self.q_eval.device)
                     # sarsa = T.zeros(L).to(self.q_eval.device)
@@ -848,8 +801,7 @@ class TTNAgent_online_offline_mix(object):
 
                     # _, features_allmem, _ = self.q_eval.forward(states_all)
                     features_allmem = self.feature
-                    features_allmem_bias = T.cat(
-                        (features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
                     feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
                                             features_allmem_bias.shape[1]).to(self.q_eval.device)
@@ -895,13 +847,11 @@ class TTNAgent_online_offline_mix(object):
 
                     # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
 
-                    features_nextmem_bias = T.cat(
-                        (features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
                     self.lin_values_next = self.update_lin_value(features_nextmem_bias)
                     maxlinq = T.max(self.lin_values_next, dim=1)[0].data
                     # maxlinq[self.dones_all_ch[ctr*L: ]] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(
-                        ((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
                     expectedsarsa[self.dones_all_ch[ctr * L:]] = 0
 
                     # targets = self.rewards_all_ch + self.gamma * maxlinq
@@ -909,8 +859,7 @@ class TTNAgent_online_offline_mix(object):
 
                     # _, features_allmem, _ = self.q_eval.forward(states_all)
                     features_allmem = self.feature
-                    features_allmem_bias = T.cat(
-                        (features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
                     feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
                                             features_allmem_bias.shape[1]).to(self.q_eval.device)
@@ -972,7 +921,7 @@ class TTNAgent_online_offline_mix(object):
         return
 
     def learn_pretrain(self):
-
+        print("nn.learn_pretrain")
         if self.tilecoding:
             feature = self.f_current
             nextfeature = self.f_next
@@ -982,5 +931,3 @@ class TTNAgent_online_offline_mix(object):
             _, feature, _ = self.q_eval.forward(self.states_all_ch)
             _, nextfeature, _ = self.q_eval.forward(self.states_all_ch_)
             self.learn_fqi(feature, nextfeature)
-
-

@@ -146,7 +146,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
+                                  ("eps_decay_steps", [1, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -171,23 +171,21 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": "prev",  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    
+                                    # sparsity params
+                                    ("if_sparsity", [0, 1]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-5, 5], [-10, 10], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2"]),
+                                    ("tilings", [10, 20])
                                     ])
 
     #################################################################################################
@@ -219,6 +217,13 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     ############# TODO: We can use this part to write a script that is able to generate experiments that should be run ########
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
+    hyperparams_no_redundant = []
+    
+    # remove redundant experiments.
+    repetitive_experiments = [x for x in range(1, 30)]
+    for ix in range(len(hyperparams)):
+        if ix%60 not in repetitive_experiments:
+            hyperparams_no_redundant.append(hyperparams[ix])
 
     with open(log_file + ".txt", 'w') as f:
         print("Start! Seed: {}".format(rand_seed), file=f)
@@ -231,9 +236,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     num_repeats = num_rep  # 10
     # TTN = True
 
-    # for hyper in hyperparams:
     # run the algorithm
-    hyper = hyperparams[hyper_num]
+    hyper = hyperparams_no_redundant[hyper_num]
     hyperparam_returns = []
     hyperparam_values = []
     hyperparam_episodes = []
@@ -249,7 +253,16 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+
+                              # sparsity params
+                              ("if_sparsity", hyper[6]),
+                              ("bounds", hyper[7]),
+                              ("layers", hyper[8]),
+                              ("bins", hyper[9])
                               ])
+
+        # print(f"Params: {params}")
+        # print(f"Nnet params: {nnet_params} ")
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -453,6 +466,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     if not os.path.isfile(files_name+".npy"):
         files_name = generate_data()
+    else:
+        print(f"Data already exists at: {files_name}.npy")
 
 
     return files_name+'.npy'
@@ -473,13 +488,13 @@ if __name__ == "__main__":
     parser.add_argument('--algo', type=str, default='fqi')
     parser.add_argument('--hyper_num', type=int, default=15)
     parser.add_argument('--data_length_num', type=int, default=0)
-    parser.add_argument('--mem_size', type=int, default=10000)
+    parser.add_argument('--mem_size', type=int, default=50000) #using 50K for offline, online and offline-online experiments
     parser.add_argument('--num_rep', type=int, default=1)
     parser.add_argument('--offline', type=bool, default=False)
     parser.add_argument('--fqi_rep_num', type=int, default=0)
     parser.add_argument('--num_step_ratio_mem', type=int, default=120000)
     parser.add_argument('--en', type=str, default='Mountaincar')  # set name of the environment here e.g. Mountaincar,
-    parser.add_argument('--fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--method_sarsa', type=str, default='expected-sarsa')  # expected-sarsa, q-learning
 
 
@@ -500,7 +515,7 @@ if __name__ == "__main__":
     ##########################################################
     ##########################################################
 
-    parser.add_argument('--offline_online_training', type=str, default="offline_online")  # set type of your validation: offline or online or offline_online
+    parser.add_argument('--offline_online_training', type=str, default=None)  # set type of your validation: offline or online or offline_online
 
     ############################################################
     ############################################################
@@ -517,7 +532,7 @@ if __name__ == "__main__":
     parser.add_argument('--tr_num_iteration', type=int, default=1)
     parser.add_argument('--tr_num_epi_per_itr', type=int, default=200)
     parser.add_argument('--tr_num_updates', type=int, default=2)
-    parser.add_argument('--tr_fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--tr_fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--tr_epsilon_stop_training', type=float, default=10e-7)
     parser.add_argument('--tr_status', type=float, default=10e-7)
     parser.add_argument('--tr_offline', type=bool, default=False) # this should be False only for online setting
@@ -590,7 +605,3 @@ if __name__ == "__main__":
                              args.tr_num_step_ratio_mem, args.en,
                              args.tr_feature, args.tr_method_sarsa, args.tr_num_epi_per_itr,
                              args.tr_fqi_reg_type, args.tr_initial_batch, rnd, args.offline_online_training)
-
-
-
-
