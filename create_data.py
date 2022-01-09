@@ -180,6 +180,12 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    # Data Augmentation Params
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.0, 0.1]),
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
+                                    ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
                                     ])
 
     #################################################################################################
@@ -241,7 +247,16 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("random_shift_pad", hyper[8]),
+                              ("ras_alpha", hyper[9]), #0.6 , 0.8
+                              ("ras_beta", hyper[10])   #1.2 , 1.4
                               ])
+
+        print(f"Params: {params}")
+        print(f"Nnet params: {nnet_params} ")
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
