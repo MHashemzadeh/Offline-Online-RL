@@ -22,6 +22,7 @@ from replay_memory import ReplayBuffer
 from utils.env_utils import process_state_constructor
 from envs.env_constructor import get_env
 from pathlib import Path
+import json
 
 # np_load_old = np.load
 
@@ -100,7 +101,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                    }
 
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
@@ -114,7 +115,10 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                                     ("layers", ["fc1", "fc2", "fc1+fc2"]),
                                     ("tilings", [10, 20])
                                     ])
-    
+
+    with open('Online//Online_Original_hyper_sets_lstdq.json', 'w') as fp:
+        fp.write(json.dumps(hyper_sets_lstdq, indent=4))
+
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
         TTN = True
@@ -133,6 +137,13 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
             hyperparams_no_redundant.append(hyperparams[ix])
 
     print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
+
+    # write to a file to maintain the indexes
+    with open("Online//Online-sweep-parameters.txt", "w") as fp:
+        for ix in range(len(hyperparams_no_redundant)):
+            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
+            fp.write(to_write + "\n")
+    fp.close()
 
     times = []
     start_time = time.perf_counter()
@@ -539,7 +550,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                    }
 
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
@@ -553,7 +564,10 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                                     ("layers", ["fc1", "fc2", "fc1+fc2"]),
                                     ("tilings", [10, 20])
                                     ])
-
+    
+    with open('Offline-online//Offline-online_Original_hyper_sets_lstdq.json', 'w') as fp:
+        fp.write(json.dumps(hyper_sets_lstdq, indent=4))
+    
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
         TTN = True
@@ -572,6 +586,12 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             hyperparams_no_redundant.append(hyperparams[ix])
 
     print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
+    # write to a file to maintain the indexes
+    with open("Offline-online//Offline-online-sweep-parameters.txt", "w") as fp:
+        for ix in range(len(hyperparams_no_redundant)):
+            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
+            fp.write(to_write + "\n")
+    fp.close()
 
     times = []
     start_time = time.perf_counter()
@@ -671,12 +691,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
         with open(log_file + ".txt", 'w') as f:
             print("Start! Seed: {}".format(rand_seed), file=f)
-            # add the list and ids to the file for easy map
-            # make JSON
-            for ix in range(len(hyperparams_no_redundant)):
-                to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
-                f.write(to_write + "\n")
-
+            
         # saved_state_list = saved_state_list_all[rep * num_epi_per_itr:rep * num_epi_per_itr + num_epi_per_itr]
 
         #############################################
@@ -1030,7 +1045,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                    "fqi_reg_type": fqi_reg_type,  # "l2" or "prev"
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
@@ -1044,7 +1059,9 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                                     ("layers", ["fc1", "fc2", "fc1+fc2"]),
                                     ("tilings", [10, 20])
                                     ])
-
+    
+    with open('Offline//Offline_Original_hyper_sets_lstdq.json', 'w') as fp:
+        fp.write(json.dumps(hyper_sets_lstdq, indent=4))
 
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
@@ -1064,6 +1081,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
             hyperparams_no_redundant.append(hyperparams[ix])
 
     print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
+    # write to a file to maintain the indexes
+    with open("Offline//Offline-sweep-parameters.txt", "w") as fp:
+        for ix in range(len(hyperparams_no_redundant)):
+            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
+            fp.write(to_write + "\n")
+    fp.close()
 
     times = []
     start_time = time.perf_counter()
