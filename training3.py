@@ -117,6 +117,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
     with open('Online//Online_Original_hyper_sets_lstdq.json', 'w') as fp:
         fp.write(json.dumps(hyper_sets_lstdq, indent=4))
+    fp.close()
     
     if alg in ("fqi"):
         hyper_sets = hyper_sets_lstdq
@@ -138,6 +139,13 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
     print(f"Number of Hyperparams: {count}")
     hyperparams = hyperparams_filtered
+
+    # write to a file to maintain the indexes
+    with open("Online//Online-sweep-parameters.txt", "w") as fp:
+        for ix in range(len(hyperparams)):
+            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
+            fp.write(to_write + "\n")
+    fp.close()
 
     times = []
     start_time = time.perf_counter()
@@ -581,6 +589,14 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     print(f"Number of Hyperparams: {count}")
     hyperparams = hyperparams_filtered
+
+    # write to a file to maintain the indexes
+    with open("Offline-online//Offline-online-sweep-parameters.txt", "w") as fp:
+        for ix in range(len(hyperparams)):
+            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
+            fp.write(to_write + "\n")
+    fp.close()
+    
     
     times = []
     start_time = time.perf_counter()
@@ -588,7 +604,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     prev_action_flag = 1
     num_repeats = num_rep  # 10
     hyper = hyperparams[hyper_num]
-    
+
 
     #TODO: Add the following params too for sweep
     #TODO: num_updates_pre_train 
@@ -1073,6 +1089,13 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
     print(f"Number of Hyperparams: {count}")
     hyperparams = hyperparams_filtered
+
+    # write to a file to maintain the indexes
+    with open("Offline//Offline-sweep-parameters.txt", "w") as fp:
+        for ix in range(len(hyperparams)):
+            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
+            fp.write(to_write + "\n")
+    fp.close()
 
     times = []
     start_time = time.perf_counter()
