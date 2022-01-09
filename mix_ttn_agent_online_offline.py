@@ -355,20 +355,24 @@ class TTNAgent_online_offline_mix(object):
                         # print('augmenting data')
                         if self.data_aug_type == 'random_shift':
 
-                            self.states_all = random_shift(self.states_all, pad=self.random_shift_pad, p=self.data_aug_prob)
-                            self.states_all_ = random_shift(self.states_all_, pad=self.random_shift_pad, p=self.data_aug_prob) 
+                            states_all = random_shift(states_all, pad=self.random_shift_pad, p=self.data_aug_prob)
+                            states_all_ = random_shift(states_all_, pad=self.random_shift_pad, p=self.data_aug_prob) 
 
                         elif self.data_aug_type == 'ras':
 
-                            self.states_all = random_amplitude_scaling(self.states_all, alpha=self.ras_alpha, beta=self.ras_beta, 
+                            states_all = random_amplitude_scaling(states_all, alpha=self.ras_alpha, beta=self.ras_beta, 
                                                                 prob=self.data_aug_prob, multivariate=False)
 
-                            self.states_all_ = random_amplitude_scaling(self.states_all_, alpha=self.ras_alpha, beta=self.ras_beta, 
+                            states_all_ = random_amplitude_scaling(states_all_, alpha=self.ras_alpha, beta=self.ras_beta, 
                                                                 prob=self.data_aug_prob, multivariate=False) 
                         else:
                             raise ValueError('Data Augmentation type is not valid: ', self.data_aug_type)
                     
-                    
+                    #Keeping things consistent with previous code.
+                    self.states_all = states_all
+                    self.states_all_ = states_all_
+
+
                     self.states_all_ch = states_all
                     self.actions_all_ch = actions_all
                     self.rewards_all_ch = rewards_all
