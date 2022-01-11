@@ -639,10 +639,6 @@ if __name__ == "__main__":
     parser.add_argument('--dirfeature', type=str, default=None) #loading batch data for feature learning
     parser.add_argument('--feature', type=str, default='learned_fet')  # 'tc', 'learned_fet' :--> #type of features
     parser.add_argument('--num_epoch', type=int, default=100)
-    parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--replace_target_cnt', type=int, default=1000)
-    parser.add_argument('--target_separate', type=bool, default=True)
-
     parser.add_argument('--data_dir', type=str, default=None)  # direction for the batch data
     parser.add_argument('--featurepath', type=str, default=None)  # direction for the features
     parser.add_argument('--starting_state_path', type=str, default=None)  # direction for the starting_state_path
@@ -658,7 +654,7 @@ if __name__ == "__main__":
     ############################################################
     ## for fqi learning:
     parser.add_argument('--tr_alg_type', type=str, default='fqi')
-    parser.add_argument('--tr_hyper_num', type=int, default=32) #cart =10, l2, mc=15, 13, prev - acr=13, l2
+    parser.add_argument('--tr_hyper_num', type=int, default=15) #seaquest=15, asterix=15 , breakout=15 , freeway=15  , space_invaders=22
     parser.add_argument('--tr_data_length_num', type=int, default=0)
     # parser.add_argument('--tr_mem_size', type=int, default=50000)
     parser.add_argument('--tr_num_rep', type=int, default=1)
@@ -667,11 +663,11 @@ if __name__ == "__main__":
     # parser.add_argument('--tr_en', type=str, default='cartpole')
     parser.add_argument('--tr_feature', type=str, default='learned_fet')   # 'tc', 'learned_fet'
     parser.add_argument('--tr_method_sarsa', type=str, default='expected-sarsa')  # expected-sarsa, q-learning
-    parser.add_argument('--tr_num_updates_pretrain', type=int, default=100)
+
     parser.add_argument('--tr_num_iteration', type=int, default=1)
     parser.add_argument('--tr_num_epi_per_itr', type=int, default=200)
     parser.add_argument('--tr_num_updates', type=int, default=2)
-    parser.add_argument('--tr_fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--tr_fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--tr_epsilon_stop_training', type=float, default=10e-7)
     parser.add_argument('--tr_status', type=float, default=10e-7)
     # parser.add_argument('--alpha', type=int, default=0.001)
@@ -679,11 +675,16 @@ if __name__ == "__main__":
     parser.add_argument('--tr_initial_batch', type=bool, default=False) ############### for online
 
     parser.add_argument('--mem_size', type=int, default=100000)  ### 10k , 50k
-    parser.add_argument('--tr_NUM_FRAMES', type=int, default=5000000)
+    parser.add_argument('--tr_NUM_FRAMES', type=int, default=1000000)
     parser.add_argument('--tr_TRAINING_FREQ', type=int, default=4)
     parser.add_argument('--num_step_ratio_mem', type=int, default=120000)
-    parser.add_argument('--en', type=str, default='asterix')  # # seaquest, asterix , breakout , freeway  , space_invaders
+    parser.add_argument('--en', type=str, default='seaquest')  # # seaquest, asterix , breakout , freeway  , space_invaders
     parser.add_argument('--SEED', type=int, default=332)
+    parser.add_argument('--tr_num_updates_pretrain', type=int, default=100)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--replace_target_cnt', type=int, default=1000)
+    parser.add_argument('--target_separate', type=bool, default=True)
+
 
     rnd = 0
 
@@ -768,14 +769,16 @@ if __name__ == "__main__":
                                args.tr_fqi_reg_type, args.tr_initial_batch, rnd, args.tr_num_updates_pretrain,
                                args.tr_epsilon_stop_training, args.offline_online_training, args.tr_NUM_FRAMES, args.tr_TRAINING_FREQ, args.SEED)
 
-    # elif args.offline_online_training == 'online':
-    #     # args.tr_offline = False
-    #     # args.tr_initial_batch = False
-    #     train_online(args.data_dir, args.starting_state_path, args.tr_alg_type, args.tr_hyper_num, args.tr_data_length_num, args.mem_size, args.tr_num_rep,
-    #                          args.tr_offline, args.tr_fqi_rep_num,
-    #                      args.tr_num_step_ratio_mem, args.en,
-    #                      args.tr_feature, args.tr_method_sarsa, args.tr_num_epi_per_itr,
-    #                      args.tr_fqi_reg_type, args.tr_initial_batch, rnd, args.offline_online_training, args.tr_NUM_FRAMES, args.tr_TRAINING_FREQ, args.SEED)
+    elif args.offline_online_training == 'online':
+        args.tr_offline = True
+        args.tr_initial_batch = True
+        train_online(args.data_dir, args.starting_state_path, args.tr_alg_type, args.tr_hyper_num,
+                     args.tr_data_length_num,
+                     args.mem_size, args.tr_num_rep,
+                     args.tr_offline, args.tr_fqi_rep_num,
+                     args.tr_num_step_ratio_mem, args.en,
+                     args.tr_feature, args.tr_method_sarsa, args.tr_num_epi_per_itr,
+                     args.tr_fqi_reg_type, args.tr_initial_batch, rnd, args.offline_online_training, args.tr_NUM_FRAMES, args.tr_TRAINING_FREQ, args.SEED)
 
 
 

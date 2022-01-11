@@ -7,7 +7,7 @@ from replay_memory import ReplayBuffer
 
 
 class DQNAgent(object):
-    def __init__(self, gamma, nnet_params, other_params, input_dims=4, dir=None, offline=False, status="online"):
+    def __init__(self, gamma, nnet_params, other_params, input_dims=10, dir=None, offline=False, status="online"):
 
         self.gamma = gamma
         self.eps_init = nnet_params['eps_init']
@@ -28,18 +28,20 @@ class DQNAgent(object):
         self.memory_load_direction = dir
         self.offline = offline
         self.status = status
+        self.in_channels = nnet_params['in_channels']
+        self.input_dims = input_dims
+        self.FIRST_N_FRAMES = nnet_params['FIRST_N_FRAMES']
+        self.replay_init_size = nnet_params['replay_init_size']
+        self.SQUARED_GRAD_MOMENTUM = nnet_params['SQUARED_GRAD_MOMENTUM']
+        self.MIN_SQUARED_GRAD = nnet_params['MIN_SQUARED_GRAD']
 
-        self.memory = ReplayBuffer(nnet_params['replay_memory_size'], input_dims,  self.n_actions, self.offline, self.memory_load_direction)
+        self.memory = ReplayBuffer(nnet_params['replay_memory_size'], self.in_channels, self.input_dims,  self.n_actions, self.offline, self.memory_load_direction)
 
-        self.q_eval = DeepQNetwork(self.lr, self.n_actions,
-                                    name=self.env_name + '_' + self.algo + '_q_eval',
-                                    input_dims=self.input_dims,
-                                    chkpt_dir=self.chkpt_dir, number_unit=128)
+        self.q_eval = DeepQNetwork(self.lr, self.n_actions, self.in_channels, number_unit=128, chkpt_dir=self.chkpt_dir,
+                                    name=self.env_name + '_' + self.algo + '_q_eval')
 
-        self.q_next = DeepQNetwork(self.lr, self.n_actions,
-                                    name=self.env_name + '_' + self.algo + '_q_eval',
-                                    input_dims=self.input_dims,
-                                    chkpt_dir=self.chkpt_dir, number_unit=128)
+        self.q_next = DeepQNetwork(self.lr, self.n_actions, self.in_channels, number_unit=128, chkpt_dir=self.chkpt_dir,
+                                    name=self.env_name + '_' + self.algo + '_q_eval')
 
     # def choose_action(self, observation):
     #     state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
@@ -62,8 +64,8 @@ class DQNAgent(object):
             epsilon = self.epsilon
 
         with T.no_grad():
-            state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
-            actions = self.q_eval.forward(state)
+            # state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
+            actions = self.q_eval.forward(observation)
             actions.detach()
         if np.random.random() > epsilon:
             action = T.argmax(actions).item()
@@ -96,10 +98,13 @@ class DQNAgent(object):
 
     # @jit(target='cuda')
     def decrement_epsilon(self):
-        self.epsilon = self.epsilon
+        # self.epsilon = self.epsilon
+        self.epsilon = self.eps_final if self.learn_step_counter - self.replay_init_size >= self.FIRST_N_FRAMES \
+            else ((self.eps_final - self.eps_init) / self.FIRST_N_FRAMES) * (
+                    self.learn_step_counter - self.replay_init_size) + self.eps_init
+        # print(self.epsilon)
         # self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
-        # self.epsilon = self.eps_init * (self.eps_final ** (
-        #             self.global_step / self.eps_decay_steps)) if self.epsilon > self.eps_final else self.eps_final
+        # self.epsilon = self.eps_init * (self.eps_final ** (self.global_step / self.eps_decay_steps)) if self.epsilon > self.eps_final else self.eps_final
 
     # @jit(target='cuda')
     def save_models(self):

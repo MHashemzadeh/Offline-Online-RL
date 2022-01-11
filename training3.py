@@ -88,7 +88,8 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
     # np.random.seed(rand_seed)
 
     # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.6,-3.75, -4.0, -4.25])),
+                                  # np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
                                   ("eps_decay_steps", [10000, 20000, 40000]),
                                   ])
 
@@ -366,26 +367,34 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
                             t) + " | Time per frame: " + str(
                             (time.time() - t_start) / t))
 
-                        with open(log_file + ".txt", 'w') as f:
+                        with open(log_file + ".txt", 'a') as f:
                             print("Episode " + str(episodes) + " | Return: " + str(ret) + " | Avg return: " +
                                      str(np.around(avg_return, 2)) + " | Frame: " + str(
                             t) + " | Time per frame: " + str(
-                            (time.time() - t_start) / t), file=f)
+                            (time.time() - t_start) / t) + " | Time until now: " + str(
+                            (time.time() - t_start)), file=f)
 
                     # Save model data and other intermediate data if the corresponding flag is true
                     if episodes % 1000 == 0:
+                        # T.save({
+                        #     'episode': episodes,
+                        #     'frame': t,
+                        #     # 'policy_net_update_counter': policy_net_update_counter,
+                        #     'policy_net_state_dict': nn.q_eval.state_dict(),
+                        #     # 'target_net_state_dict': nn.lin_weights,
+                        #     # 'optimizer_state_dict': nn.optimizer.state_dict(),
+                        #     'avg_return': avg_return,
+                        #     'return_per_run': data_return,
+                        #     'frame_stamp_per_run': frame_stamp,
+                        #     # 'replay_buffer': r_buffer if not replay_off else []
+                        # }, files_name + "_checkpoint")
+
+                        # Write data to file
                         T.save({
-                            'episode': episodes,
-                            'frame': t,
-                            # 'policy_net_update_counter': policy_net_update_counter,
-                            'policy_net_state_dict': nn.q_eval.state_dict(),
-                            # 'target_net_state_dict': nn.lin_weights,
-                            # 'optimizer_state_dict': nn.optimizer.state_dict(),
-                            'avg_return': avg_return,
-                            'return_per_run': data_return,
-                            'frame_stamp_per_run': frame_stamp,
-                            # 'replay_buffer': r_buffer if not replay_off else []
-                        }, files_name + "_checkpoint")
+                            'returns': data_return,
+                            'frame_stamps': frame_stamp,
+                            'policy_net_state_dict': nn.q_eval.state_dict()
+                        }, files_name + "_data_and_weights")
 
 
 
@@ -469,9 +478,9 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
                 "Avg return: " + str(np.around(avg_return, 2)) + " | Time per frame: " + str(
                     (time.time() - t_start) / t))
 
-            with open(log_file + ".txt", 'w') as f:
-                print("Avg return: " + str(np.around(avg_return, 2)) + " | Time per frame: " + str(
-                    (time.time() - t_start) / t), file=f)
+            with open(log_file + ".txt", 'a') as f:
+                print("Avg return: " + str(np.around(avg_return, 2)) + " | Time until now: " + str(
+                    (time.time() - t_start) ), file=f)
 
             # Write data to file
             T.save({
@@ -517,7 +526,7 @@ def train_online(data_dir, starting_state_path,alg_type, hyper_num, data_length_
     np.save(files_name + 'hyperparam_final_stdvalues', np.std(hyperparam_values, axis=0))
     np.save(files_name + 'hyperparam_final_stdepisodes', np.std(hyperparam_episodes, axis=0))
 
-    data_name = "Data//{}_{}".format(en, mem_size)
+    data_name = "Data//{}_{}_hyper_{}".format(en, mem_size, hyper_num)
     data['state'] = nn.memory.state_memory
     data['action'] = nn.memory.action_memory
     data['reward'] = nn.memory.reward_memory
@@ -567,7 +576,7 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
     # np.random.seed(rand_seed)
 
     # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.6, -3.75, -4.0, -4.25])),
                                   ("eps_decay_steps", [10000, 20000, 40000]),
                                   ])
     ## DQN
@@ -602,9 +611,10 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
                    "in_channels": in_channels
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.6])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.6, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.0001]),
+                                     [2, 1, 0, 0.01, 0.002, 0.001, 0.0003, 0.0001]),
+                                    # [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.0001]
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
@@ -931,32 +941,38 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
 
                     # Logging exponentiated return only when verbose is turned on and only at 1000 episode intervals
                     avg_return = 0.99 * avg_return + 0.01 * ret
-                    if episodes % 100 == 0:
+                    if episodes % 1000 == 0:
                         logging.info("Episode " + str(episodes) + " | Return: " + str(ret) + " | Avg return: " +
                                      str(np.around(avg_return, 2)) + " | Frame: " + str(
                             t) + " | Time per frame: " + str(
                             (time.time() - t_start) / t))
 
-                        with open(log_file + ".txt", 'w') as f:
+                        with open(log_file + ".txt", 'a') as f:
                             print("Episode " + str(episodes) + " | Return: " + str(ret) + " | Avg return: " +
                                      str(np.around(avg_return, 2)) + " | Frame: " + str(
                             t) + " | Time per frame: " + str(
                             (time.time() - t_start) / t), file=f)
 
                     # Save model data and other intermediate data if the corresponding flag is true
-                    if episodes % 1000 == 0:
+                    if episodes % 10000 == 0:
+                        # T.save({
+                        #     'episode': episodes,
+                        #     'frame': t,
+                        #     # 'policy_net_update_counter': policy_net_update_counter,
+                        #     'policy_net_state_dict': nn.q_eval.state_dict(),
+                        #     # 'target_net_state_dict': nn.lin_weights,
+                        #     # 'optimizer_state_dict': nn.optimizer.state_dict(),
+                        #     'avg_return': avg_return,
+                        #     'return_per_run': data_return,
+                        #     'frame_stamp_per_run': frame_stamp,
+                        #     # 'replay_buffer': r_buffer if not replay_off else []
+                        # }, files_name + "_checkpoint")
+                        # Write data to file
                         T.save({
-                            'episode': episodes,
-                            'frame': t,
-                            # 'policy_net_update_counter': policy_net_update_counter,
-                            'policy_net_state_dict': nn.q_eval.state_dict(),
-                            # 'target_net_state_dict': nn.lin_weights,
-                            # 'optimizer_state_dict': nn.optimizer.state_dict(),
-                            'avg_return': avg_return,
-                            'return_per_run': data_return,
-                            'frame_stamp_per_run': frame_stamp,
-                            # 'replay_buffer': r_buffer if not replay_off else []
-                        }, files_name + "_checkpoint")
+                            'returns': data_return,
+                            'frame_stamps': frame_stamp,
+                            'policy_net_state_dict': nn.q_eval.state_dict()
+                        }, files_name + "_data_and_weights")
 
 
 
@@ -1030,9 +1046,9 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
                 "Avg return: " + str(np.around(avg_return, 2)) + " | Time per frame: " + str(
                     (time.time() - t_start) / t))
 
-            with open(log_file + ".txt", 'w') as f:
-                print("Avg return: " + str(np.around(avg_return, 2)) + " | Time per frame: " + str(
-                    (time.time() - t_start) / t), file=f)
+            with open(log_file + ".txt", 'a') as f:
+                print("Avg return: " + str(np.around(avg_return, 2)) + " | Time until now: " + str(
+                    (time.time() - t_start)), file=f)
 
             # Write data to file
             T.save({
@@ -1098,10 +1114,11 @@ def train_offline_online(data_dir, starting_state_path, alg_type, hyper_num, dat
     np.save(files_name + 'hyperparam_final_stdepisodes', np.std(hyperparam_episodes, axis=0))
     np.save(files_name + 'hyperparam_final_stdvals', np.std(hyperparam_vals, axis=0))
 
-    with open(log_file + ".txt", 'w') as f:
+    with open(log_file + ".txt", 'a') as f:
         print("Avg values: " + str(np.around(np.mean(hyperparam_vals), 2)) + "std values: " + str(
-            np.around(np.std(hyperparam_vals), 2)) + " | Time per frame: " + str(
-            (time.time() - t_start) / t), file=f)
+            np.around(np.std(hyperparam_vals), 2)) + " | Time until now: " + str(
+            (time.time() - t_start) ) + " | mean hyperparam vals: " + str(np.mean(hyperparam_vals) )
+              + " | mean hyperparam episodes : " + str(np.mean(hyperparam_episodes) ) + " | std hyperparam vals : " + str(np.std(hyperparam_vals)), file=f)
 
     print(np.mean(hyperparam_vals))
     print(np.mean(hyperparam_episodes))
@@ -1153,7 +1170,7 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
     # np.random.seed(rand_seed)
 
     # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.6, -3.75, -4.0, -4.25])),
                                   ("eps_decay_steps", [10000, 20000, 40000]),
                                   ])
     ## DQN
@@ -1188,9 +1205,10 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
                    "in_channels": in_channels
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.6])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.6, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
                                     ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.0001]),
+                                     [2, 1, 0, 0.01, 0.002, 0.001, 0.0003, 0.0001]),
+                                    # [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.0001]
                                     # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
@@ -1387,7 +1405,7 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
                 #     loss1= loss
                 #     t += 1
 
-                batch_size = 64
+                batch_size = 32
                 for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
                     num_iteration_feature = int(mem_size / batch_size)
                     shuffle_index = np.arange(nnet_params['replay_memory_size'])
@@ -1499,32 +1517,38 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
 
                     # Logging exponentiated return only when verbose is turned on and only at 1000 episode intervals
                     avg_return = 0.99 * avg_return + 0.01 * ret
-                    if episodes % 100 == 0:
+                    if episodes % 1000 == 0:
                         logging.info("Episode " + str(episodes) + " | Return: " + str(ret) + " | Avg return: " +
                                      str(np.around(avg_return, 2)) + " | Frame: " + str(
                             t) + " | Time per frame: " + str(
                             (time.time() - t_start) / t))
 
-                        with open(log_file + ".txt", 'w') as f:
+                        with open(log_file + ".txt", 'a') as f:
                             print("Episode " + str(episodes) + " | Return: " + str(ret) + " | Avg return: " +
                                      str(np.around(avg_return, 2)) + " | Frame: " + str(
-                            t) + " | Time per frame: " + str(
-                            (time.time() - t_start) / t), file=f)
+                            t) + " | Time until now: " + str(
+                            (time.time() - t_start) ), file=f)
 
                     # Save model data and other intermediate data if the corresponding flag is true
-                    if episodes % 1000 == 0:
+                    if episodes % 10000 == 0:
+                        # T.save({
+                        #     'episode': episodes,
+                        #     'frame': t,
+                        #     # 'policy_net_update_counter': policy_net_update_counter,
+                        #     'policy_net_state_dict': nn.q_eval.state_dict(),
+                        #     # 'target_net_state_dict': nn.lin_weights,
+                        #     # 'optimizer_state_dict': nn.optimizer.state_dict(),
+                        #     'avg_return': avg_return,
+                        #     'return_per_run': data_return,
+                        #     'frame_stamp_per_run': frame_stamp,
+                        #     # 'replay_buffer': r_buffer if not replay_off else []
+                        # }, files_name + "_checkpoint")
+                        # Write data to file
                         T.save({
-                            'episode': episodes,
-                            'frame': t,
-                            # 'policy_net_update_counter': policy_net_update_counter,
-                            'policy_net_state_dict': nn.q_eval.state_dict(),
-                            # 'target_net_state_dict': nn.lin_weights,
-                            # 'optimizer_state_dict': nn.optimizer.state_dict(),
-                            'avg_return': avg_return,
-                            'return_per_run': data_return,
-                            'frame_stamp_per_run': frame_stamp,
-                            # 'replay_buffer': r_buffer if not replay_off else []
-                        }, files_name + "_checkpoint")
+                            'returns': data_return,
+                            'frame_stamps': frame_stamp,
+                            'policy_net_state_dict': nn.q_eval.state_dict()
+                        }, files_name + "_data_and_weights")
 
 
 
@@ -1577,9 +1601,9 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
                 "Avg return: " + str(np.around(avg_return, 2)) + " | Time per frame: " + str(
                     (time.time() - t_start) / t))
 
-            with open(log_file + ".txt", 'w') as f:
-                print("Avg return: " + str(np.around(avg_return, 2)) + " | Time per frame: " + str(
-                    (time.time() - t_start) / t), file=f)
+            with open(log_file + ".txt", 'a') as f:
+                print("Avg return: " + str(np.around(avg_return, 2)) + " | Time until now: " + str(
+                    (time.time() - t_start)), file=f)
 
             # Write data to file
             T.save({
@@ -1642,9 +1666,12 @@ def train_offline(data_dir, starting_state_path, alg_type, hyper_num, data_lengt
     np.save(files_name + 'hyperparam_final_stdepisodes', np.std(hyperparam_episodes, axis=0))
     np.save(files_name + 'hyperparam_final_stdvals', np.std(hyperparam_vals, axis=0))
 
-    with open(log_file + ".txt", 'w') as f:
-        print("Avg values: " + str(np.around(np.mean(hyperparam_vals), 2)) + "std values: " + str(np.around(np.std(hyperparam_vals), 2)) + " | Time per frame: " + str(
-            (time.time() - t_start) / t), file=f)
+    with open(log_file + ".txt", 'a') as f:
+        print("Avg values: " + str(np.around(np.mean(hyperparam_vals), 2)) + "std values: " + str(
+            np.around(np.std(hyperparam_vals), 2)) + " | Time until now: " + str(
+            (time.time() - t_start)) + " | mean hyperparam vals: " + str(np.mean(hyperparam_vals))
+              + " | mean hyperparam episodes : " + str(
+            np.mean(hyperparam_episodes)) + " | std hyperparam vals : " + str(np.std(hyperparam_vals)), file=f)
 
     print(np.mean(hyperparam_vals))
     print(np.mean(hyperparam_episodes))

@@ -3,7 +3,7 @@
 #SBATCH --output=../out/%A%a.out
 #SBATCH --error=../out/%A%a.err
 
-#SBATCH --array=0-10:1
+#SBATCH --array=0-0:1
 #SBATCH --time=24:50:00
 # SBATCH --account=def-whitem
 #SBATCH --account=rrg-whitem
@@ -28,25 +28,25 @@ echo Running..$SLURM_ARRAY_TASK_ID
 #let "end_idx=$SLURM_ARRAY_TASK_ID+5"
 
 
-#python create_data.py --en 'seaquest' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline' -tr_num_updates_pretrain 100
-#python create_data.py --en 'seaquest' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline_online' -tr_num_updates_pretrain 100
-python create_data.py --en 'seaquest' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'online' -tr_num_updates_pretrain 100
+python create_data.py --en 'seaquest' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline' --tr_num_updates_pretrain 50
+#python create_data.py --en 'seaquest' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline_online' --tr_num_updates_pretrain 50
+#python create_data.py --en 'seaquest' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'online' --tr_num_updates_pretrain 50
 
-#python create_data.py --en 'asterix' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline' -tr_num_updates_pretrain 100
-#python create_data.py --en 'asterix' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline_online' -tr_num_updates_pretrain 100
-#python create_data.py --en 'asterix' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'online' -tr_num_updates_pretrain 100
+#python create_data.py --en 'asterix' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline' --tr_num_updates_pretrain 50
+#python create_data.py --en 'asterix' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline_online' --tr_num_updates_pretrain 50
+#python create_data.py --en 'asterix' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'online' --tr_num_updates_pretrain 50
 
-#python create_data.py --en 'breakout' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline' -tr_num_updates_pretrain 100
-#python create_data.py --en 'breakout' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline_online' -tr_num_updates_pretrain 100
-#python create_data.py --en 'breakout' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'online' -tr_num_updates_pretrain 100
+#python create_data.py --en 'breakout' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline' --tr_num_updates_pretrain 50
+#python create_data.py --en 'breakout' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline_online' --tr_num_updates_pretrain 50
+#python create_data.py --en 'breakout' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'online' --tr_num_updates_pretrain 50
 
-#python create_data.py --en 'freeway' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline' -tr_num_updates_pretrain 100
-#python create_data.py --en 'freeway' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'offline_online' -tr_num_updates_pretrain 100
-#python create_data.py --en 'freeway' --tr_alg_type 'fqi' --tr_hyper_num 15 --offline_online_training 'online' -tr_num_updates_pretrain 100
+#python create_data.py --en 'freeway' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline' --tr_num_updates_pretrain 50
+#python create_data.py --en 'freeway' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline_online' --tr_num_updates_pretrain 50
+#python create_data.py --en 'freeway' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'online' --tr_num_updates_pretrain 50
 
-#python create_data.py --en 'space_invaders' --tr_alg_type 'fqi' --tr_hyper_num 22 --offline_online_training 'offline' -tr_num_updates_pretrain 100
-#python create_data.py --en 'space_invaders' --tr_alg_type 'fqi' --tr_hyper_num 22 --offline_online_training 'offline_online' -tr_num_updates_pretrain 100
-#python create_data.py --en 'space_invaders' --tr_alg_type 'fqi' --tr_hyper_num 22 --offline_online_training 'online' -tr_num_updates_pretrain 100
+#python create_data.py --en 'space_invaders' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline' --tr_num_updates_pretrain 50
+#python create_data.py --en 'space_invaders' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'offline_online' --tr_num_updates_pretrain 50
+#python create_data.py --en 'space_invaders' --tr_alg_type 'dqn' --tr_hyper_num 2 --offline_online_training 'online' --tr_num_updates_pretrain 50
 
 # seaquest, asterix , breakout , freeway  , space_invaders
 
