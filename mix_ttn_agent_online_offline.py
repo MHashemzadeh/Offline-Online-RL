@@ -36,6 +36,7 @@ class TTNAgent_online_offline_mix(object):
         self.ras_beta = other_params['ras_beta'] # The maximum value of uniform distribution used for scaling the states in random amplitude scaling (rsa) technique
         self.data_aug_type = other_params['data_aug_type'] # The type of data augmentation that we are going to use: random_shift (for visual inputs), rsa (for others)
         self.data_aug_prob = other_params['data_aug_prob'] # The probability of data getting augmented
+        self.data_aug_loc = other_params['data_aug_loc'] # Where to apply augmentation: in rep learning, in fqi updates, or in both rep learning and fqi updates
         self.data_aug_pad = other_params['random_shift_pad'] # The number of pixels that will be padded for random shift technique. 4 usually works fine for this so there is no need to tune it
 
         self.lr = other_params['nn_lr']
@@ -260,7 +261,7 @@ class TTNAgent_online_offline_mix(object):
 
 
             #### Data Augmentation #####
-            if self.data_aug_prob > 0.:
+            if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'rep' or self.data_aug_loc == 'both')):
                 # print('augmenting data')
                 if self.data_aug_type == 'random_shift':
 
@@ -351,7 +352,7 @@ class TTNAgent_online_offline_mix(object):
                    
                    
                     #### Data Augmentation #####
-                    if self.data_aug_prob > 0.:
+                    if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'fqi' or self.data_aug_loc == 'both')):
                         # print('augmenting data')
                         if self.data_aug_type == 'random_shift':
 
@@ -547,7 +548,7 @@ class TTNAgent_online_offline_mix(object):
 
 
         #### Data Augmentation #####
-        if self.data_aug_prob > 0.:
+        if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'rep' or self.data_aug_loc == 'both')):
             # print('augmenting data')
             if self.data_aug_type == 'random_shift':
 
@@ -643,7 +644,7 @@ class TTNAgent_online_offline_mix(object):
 
 
                     #### Data Augmentation #####
-                    if self.data_aug_prob > 0.:
+                    if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'fqi' or self.data_aug_loc == 'both')):
                         # print('augmenting data')
                         if self.data_aug_type == 'random_shift':
 
@@ -996,7 +997,7 @@ class TTNAgent_online_offline_mix(object):
 
         else:
             #### Data Augmentation #####
-            if self.data_aug_prob > 0.:
+            if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'fqi' or self.data_aug_loc == 'both')):
                 # print('augmenting data')
                 if self.data_aug_type == 'random_shift':
 

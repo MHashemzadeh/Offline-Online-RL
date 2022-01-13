@@ -173,19 +173,19 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "fqi_reg_type": "prev",  # "l2" or "prev"
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
-                                    # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), 
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]),
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0, 0.1]),
+                                    ("data_aug_prob", [0.0, 0.01, 0.05, 0.1]),
+                                    ("data_aug_loc", ['rep', 'fqi', 'both']),
                                     ("random_shift_pad", [4]),
-                                    ("ras_alpha", [0.6, 0.8]), #0.6 , 0.8
-                                    ("ras_beta", [1.2, 1.4])   #1.2 , 1.4
+                                    ("ras_alpha", [0.9]), #0.6 , 0.8
+                                    ("ras_beta", [1.1])   #1.2 , 1.4
                                     ])
 
     #################################################################################################
@@ -226,6 +226,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
+
+    # Getiing syntax error in print command for jobs that did not run
     print(f"Number of Hyperparams: {count}")
     hyperparams = hyperparams_filtered
     
@@ -262,9 +264,10 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               # Data Augmentation Params
                               ("data_aug_type", hyper[6]),
                               ("data_aug_prob", hyper[7]),
-                              ("random_shift_pad", hyper[8]),
-                              ("ras_alpha", hyper[9]), #0.6 , 0.8
-                              ("ras_beta", hyper[10])   #1.2 , 1.4
+                              ("data_aug_loc", hyper[8]),
+                              ("random_shift_pad", hyper[9]),
+                              ("ras_alpha", hyper[10]), #0.6 , 0.8
+                              ("ras_beta", hyper[11])   #1.2 , 1.4
                               ])
 
         print(f"Params: {params}")
