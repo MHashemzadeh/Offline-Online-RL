@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="90adfdf1-02ac-4ffa-bd37-127d356239f9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline-online/Training_fqi_offlineonline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_2_initialbatch__checkpoint" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline-online/Training_fqi_offlineonline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_2_initialbatch_fqi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch__checkpoint" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch__data_and_weights" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_fqi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_avgepisodes.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_avgepisodevalues.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_avgreturns.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_avgvalues.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_episodes.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_avgepisodes.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_avgreturns.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_avgvals.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_avgvalues.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_stdepisodes.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_stdreturns.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_stdvals.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_final_stdvalues.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_returns.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_stdepisodes.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_stdepisodevalues.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_stdreturns.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_stdvalues.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_vals.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Offline/Training_fqi_offline_env_asterix_mem_size_100000_date_03_01_2022_hyper_32_training_100_initialbatch_hyperparam_values.npy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Online/Training_fqi_online_env_asterix_mem_size_100000_date_03_01_2022_hyper_32fqi.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TTN_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/TTN_network.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/acr_off.sh" beforeDir="false" afterPath="$PROJECT_DIR$/acr_off.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/acr_on.sh" beforeDir="false" afterPath="$PROJECT_DIR$/acr_on.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/acr_on_dqn.sh" beforeDir="false" afterPath="$PROJECT_DIR$/acr_on_dqn.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/create_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/create_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dqn_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/dqn_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/feature_fqi_asterix_100000_100.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lin_weights_fqi_asterix_100000_100.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mix_ttn_agent_online_offline.py" beforeDir="false" afterPath="$PROJECT_DIR$/mix_ttn_agent_online_offline.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/training3.py" beforeDir="false" afterPath="$PROJECT_DIR$/training3.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1uAeLnVTJ9rfhLiy1Iy6UIh7XRO" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.mappings" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.highlight.symlinks" value="true" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.date" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.permissions" value="false" />
+    <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/Data" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/features" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.create_data">
+    <configuration name="create_data" type="PythonConfigurationType" factoryName="Python" singleton="false" temporary="true" nameIsGenerated="true">
+      <module name="paper_minatar" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$PROJECT_DIR$/../../MinAtar/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/create_data.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plot_check" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="paper_acrobot" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/plot_check.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plot_final_acrobot" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="paper_acrobot" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/plot_final_acrobot.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plot_final_catcher" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="paper_acrobot" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/plot_final_catcher.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plot_final_catcher_2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="paper_acrobot" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../TTN_results/catcher" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../../TTN_results/catcher/plot_final_catcher_2.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.create_data" />
+      <item itemvalue="Python.plot_check" />
+      <item itemvalue="Python.plot_final_catcher" />
+      <item itemvalue="Python.plot_final_catcher_2" />
+      <item itemvalue="Python.plot_final_acrobot" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.create_data" />
+        <item itemvalue="Python.plot_final_acrobot" />
+        <item itemvalue="Python.plot_check" />
+        <item itemvalue="Python.plot_final_catcher_2" />
+        <item itemvalue="Python.plot_final_catcher" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="90adfdf1-02ac-4ffa-bd37-127d356239f9" name="Default Changelist" comment="" />
+      <created>1624112768033</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1624112768033</updated>
+      <workItem from="1624112769528" duration="69595000" />
+      <workItem from="1624790387160" duration="7405000" />
+      <workItem from="1624859309757" duration="88956000" />
+      <workItem from="1626079956782" duration="458000" />
+      <workItem from="1626449705417" duration="143000" />
+      <workItem from="1626614847462" duration="60000" />
+      <workItem from="1630424884036" duration="100539000" />
+      <workItem from="1631248771305" duration="19939000" />
+      <workItem from="1631403870298" duration="119222000" />
+      <workItem from="1632875496778" duration="20013000" />
+      <workItem from="1633340763987" duration="15000" />
+      <workItem from="1633377254420" duration="6186000" />
+      <workItem from="1634598597082" duration="109000" />
+      <workItem from="1635805149323" duration="597000" />
+      <workItem from="1638386533344" duration="481000" />
+      <workItem from="1640733664799" duration="55370000" />
+      <workItem from="1641266029411" duration="44698000" />
+      <workItem from="1641680644236" duration="19413000" />
+      <workItem from="1641840730684" duration="34372000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/../../TTN_results/catcher/plot_final_catcher_2.py</url>
+          <line>102</line>
+          <option name="timeStamp" value="93" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/create_data.py</url>
+          <line>763</line>
+          <option name="timeStamp" value="94" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/replay_memory.py</url>
+          <line>37</line>
+          <option name="timeStamp" value="96" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/dqn_agent.py</url>
+          <line>37</line>
+          <option name="timeStamp" value="97" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/training3.py</url>
+          <line>1318</line>
+          <option name="timeStamp" value="98" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/dqn_agent.py</url>
+          <line>66</line>
+          <option name="timeStamp" value="99" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/utils/ul_networks.py</url>
+          <line>76</line>
+          <option name="timeStamp" value="102" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/mix_ttn_agent_online_offline.py</url>
+          <line>480</line>
+          <option name="timeStamp" value="112" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/mix_ttn_agent_online_offline.py</url>
+          <line>302</line>
+          <option name="timeStamp" value="113" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/mix_ttn_agent_online_offline.py</url>
+          <line>288</line>
+          <option name="timeStamp" value="114" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/utils/data_augs.py</url>
+          <line>48</line>
+          <option name="timeStamp" value="115" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/utils/data_augs.py</url>
+          <line>14</line>
+          <option name="timeStamp" value="116" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/training3.py</url>
+          <line>138</line>
+          <option name="timeStamp" value="117" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot4.coverage" NAME="plot4 Coverage Results" MODIFIED="1631223919252" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$test_plot.coverage" NAME="test_plot Coverage Results" MODIFIED="1631827039712" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot_final_cartpole.coverage" NAME="plot_final_cartpole Coverage Results" MODIFIED="1633066278865" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot_final_catcher.coverage" NAME="plot_final_catcher Coverage Results" MODIFIED="1633068821138" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot_final_mc.coverage" NAME="plot_final_mc Coverage Results" MODIFIED="1632963139448" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot5.coverage" NAME="plot5 Coverage Results" MODIFIED="1631900289624" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot3.coverage" NAME="plot3 Coverage Results" MODIFIED="1625925887472" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_minatar$create_data.coverage" NAME="create_data Coverage Results" MODIFIED="1641522278187" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/atc_minatar_2$create_data.coverage" NAME="create_data Coverage Results" MODIFIED="1641943300854" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot_final_catcher_2.coverage" NAME="plot_final_catcher_2 Coverage Results" MODIFIED="1633124924395" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../TTN_results/catcher" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot_check.coverage" NAME="plot_check Coverage Results" MODIFIED="1633377519049" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$create_data.coverage" NAME="create_data Coverage Results" MODIFIED="1633378983679" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot6.coverage" NAME="plot6 Coverage Results" MODIFIED="1632287192476" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot.coverage" NAME="plot Coverage Results" MODIFIED="1625042658794" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot_final_acrobot.coverage" NAME="plot_final_acrobot Coverage Results" MODIFIED="1632964227831" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/paper_acrobot$plot2.coverage" NAME="plot2 Coverage Results" MODIFIED="1625498293057" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>
