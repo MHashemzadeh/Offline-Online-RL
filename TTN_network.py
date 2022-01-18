@@ -18,7 +18,7 @@ class TTNNetwork(nn.Module):
         super(TTNNetwork, self).__init__()
         self.input_dims = input_dims
         
-        self.if_sparsity = if_sparsity
+        self.if_sparsity = int(if_sparsity)
         self.bins = bins
         self.layers_to_apply_sparsity = layers_to_apply
         if eta < 0: # controls the sparsity
@@ -30,29 +30,41 @@ class TTNNetwork(nn.Module):
         self.tile_max = tile_max
 
         # construct network based on sparsity.
-        if self.layers_to_apply_sparsity == None:
+        if self.if_sparsity == 0:
             print(f"No sparsity is added!")
             self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
             self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
             self.fc3 = nn.Linear(number_unit, num_units_rep, bias=True) # the representation layer
-        elif self.layers_to_apply_sparsity == "fc1+fc2":
+            self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
+            self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
+        elif self.layers_to_apply_sparsity == "fc1+fc2" and self.if_sparsity == 1:
             print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
             self.fc1 = nn.Linear(input_dims, pre_tiling_width, bias=True)
             self.fc2 = nn.Linear(pre_tiling_width * bins, pre_tiling_width, bias=True)
             self.fc3 = nn.Linear(pre_tiling_width * bins, num_units_rep, bias=True) # the representation layer
-        elif self.layers_to_apply_sparsity == "fc1":
+            self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
+            self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
+        elif self.layers_to_apply_sparsity == "fc1" and self.if_sparsity == 1:
             print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
             self.fc1 = nn.Linear(input_dims, pre_tiling_width, bias=True)
             self.fc2 = nn.Linear(pre_tiling_width * bins, number_unit, bias=True)
             self.fc3 = nn.Linear(number_unit, num_units_rep, bias=True) # the representation layer
-        elif self.layers_to_apply_sparsity == "fc2":
+            self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
+            self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
+        elif self.layers_to_apply_sparsity == "fc2" and self.if_sparsity == 1:
             print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
             self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
             self.fc2 = nn.Linear(number_unit, pre_tiling_width, bias=True)
             self.fc3 = nn.Linear(pre_tiling_width * bins, num_units_rep, bias=True) # the representation layer
-        
-        self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
-        self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
+            self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
+            self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
+        elif self.layers_to_apply_sparsity == "fc3" and self.if_sparsity == 1:
+            print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
+            self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
+            self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
+            self.fc3 = nn.Linear(number_unit, pre_tiling_width, bias=True) # the representation layer
+            self.fc4 = nn.Linear(pre_tiling_width * bins, n_actions, bias=True) # the prediction layer
+            self.fc5 = nn.Linear(pre_tiling_width * bins, n_actions*input_dims, bias=True) # the state-prediction layer
         # nn.init.kaiming_normal_(self.fc1.weight, nonlinearity="relu", mode='fan_in')
         # nn.init.kaiming_normal_(self.fc2.weight, nonlinearity="relu", mode='fan_in')
         # nn.init.kaiming_normal_(self.fc3.weight, nonlinearity="relu", mode='fan_in')
@@ -99,26 +111,44 @@ class TTNNetwork(nn.Module):
         # Tesla K80
         
         # construct network based on sparsity.
-        if self.layers_to_apply_sparsity == None:
+        if self.if_sparsity == 0:
             x = F.relu(self.fc1(state))
             x = F.relu(self.fc2(x))
-        elif self.layers_to_apply_sparsity == "fc1+fc2":
+            x = F.relu(self.fc3(x))
+            self.predictions = self.fc4(x)
+            self.pred_states = self.fc5(x)
+        elif self.layers_to_apply_sparsity == "fc1+fc2" and self.if_sparsity == 1:
             x = self.fc1(state)
             x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
             x = self.fc2(x)
             x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc2's output.
-        elif self.layers_to_apply_sparsity == "fc1":
+            x = F.relu(self.fc3(x))
+            self.predictions = self.fc4(x)
+            self.pred_states = self.fc5(x)
+        elif self.layers_to_apply_sparsity == "fc1" and self.if_sparsity == 1:
             x = self.fc1(state)
             x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
             x = F.relu(self.fc2(x))
-        elif self.layers_to_apply_sparsity == "fc2":
+            x = F.relu(self.fc3(x))
+            self.predictions = self.fc4(x)
+            self.pred_states = self.fc5(x)
+        elif self.layers_to_apply_sparsity == "fc2" and self.if_sparsity == 1:
             x = F.relu(self.fc1(state))
             x = self.fc2(x)
             x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+            x = F.relu(self.fc3(x))
+            self.predictions = self.fc4(x)
+            self.pred_states = self.fc5(x)
+        elif self.layers_to_apply_sparsity == "fc3" and self.if_sparsity == 1:
+            x = F.relu(self.fc1(state))
+            x = F.relu(self.fc2(x))
+            x = self.fc3(x)
+            x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc3's output.
+            self.predictions = self.fc4(x)
+            self.pred_states = self.fc5(x)
 
-        x = F.relu(self.fc3(x))
-        self.predictions = self.fc4(x)
-        self.pred_states = self.fc5(x)
+        
+        
         return self.predictions, x, self.pred_states
 
     # @jit(target='cuda')

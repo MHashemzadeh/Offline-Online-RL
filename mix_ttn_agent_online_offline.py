@@ -42,6 +42,7 @@ class TTNAgent_online_offline_mix(object):
         self.tile_min, self.tile_max = other_params["bounds"]
         self.layer_to_apply_sparsity_on = other_params["layers"]
         self.bins = other_params["bins"]
+        self.pre_tiling_width = 20
 
         self.lr = other_params['nn_lr']
         self.reg_A = other_params['reg_A']
@@ -66,7 +67,11 @@ class TTNAgent_online_offline_mix(object):
         self.num_tilings = num_tiling
 
         if isinstance(self.input_dims, int): 
-            self.hash_num = (self.num_tiles ** self.input_dims) * self.num_tilings
+            if self.if_sparsity == 1 and self.layer_to_apply_sparsity_on == "fc3":
+                self.hash_num = self.bins * self.pre_tiling_width
+            else:
+                self.hash_num = (self.num_tiles ** self.input_dims) * self.num_tilings
+
             self.iht = IHT(self.hash_num)
         else:
             warnings.warn('Tile coding is not defined for visual inputs!')
@@ -98,6 +103,7 @@ class TTNAgent_online_offline_mix(object):
                                     tile_max=self.tile_max,
                                     tile_min=self.tile_min,
                                     bins=self.bins,
+                                    pre_tiling_width=self.pre_tiling_width,
                                     layers_to_apply=self.layer_to_apply_sparsity_on,
                                     number_unit=self.number_unit,
                                     num_units_rep=self.num_units_rep)
@@ -108,6 +114,7 @@ class TTNAgent_online_offline_mix(object):
                                     tile_max=self.tile_max,
                                     tile_min=self.tile_min,
                                     bins=self.bins,
+                                    pre_tiling_width=self.pre_tiling_width,
                                     layers_to_apply=self.layer_to_apply_sparsity_on,
                                     number_unit=self.number_unit,
                                     num_units_rep=self.num_units_rep)
@@ -131,11 +138,20 @@ class TTNAgent_online_offline_mix(object):
         if self.tilecoding:
             if not isinstance(self.input_dims, int):
                 raise ValueError('Tile coding cannot be used for visual inputs.')
+            print(f"Doing tile coding!")
             self.num_fe = self.hash_num + 1
         else:
-            self.num_fe = self.num_units_rep + 1
-
+            if self.if_sparsity == 1 and self.layer_to_apply_sparsity_on == "fc3":
+                self.num_fe = self.bins * self.pre_tiling_width + 1
+            else:
+                self.num_fe = self.num_units_rep + 1
+        
+        # TODO: change lin_weights here for LTA (fc3())
+        # make hidden units 16 or 128 and check. Change => (self.num_units_rep)
         self.lin_weights = Variable(T.zeros(self.n_actions, (self.num_fe)))  # requires_grad=True
+        print(f"Lin Weights Shape {self.lin_weights.shape}")
+        print(f"Acts: {self.n_actions} | Fts: {self.num_fe}")
+
         self.lin_values = T.mm(Variable(T.zeros(self.batch_size, (self.num_fe))),
                                T.transpose(self.lin_weights, 0, 1))
         # self.clf = Ridge(alpha=self.reg_A)
@@ -248,6 +264,7 @@ class TTNAgent_online_offline_mix(object):
     # @jit
     def update_lin_value(self, features):
         # print(features)
+        
         lin_values = T.mm(features, T.transpose(self.lin_weights, 0, 1))
         return lin_values
 

@@ -173,18 +173,18 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "fqi_reg_type": "prev",  # "l2" or "prev"
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]),
-                                    # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
+                                    ("reg_A", [0.0001, 0.001, 0.01, 0.03, 0.1]),
+                                    # prev vals => [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
-                                    
+
                                     # sparsity params
                                     ("if_sparsity", [0, 1]),
-                                    ("bounds", [[-1, 1], [-2, 2], [-5, 5], [-10, 10], [-20, 20]]),
-                                    ("layers", ["fc1", "fc2", "fc1+fc2"]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2", "fc3"]),
                                     ("tilings", [10, 20])
                                     ])
 
@@ -220,9 +220,9 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     hyperparams_no_redundant = []
     
     # remove redundant experiments.
-    repetitive_experiments = [x for x in range(1, 30)]
+    repetitive_experiments = [x for x in range(1, 24)]
     for ix in range(len(hyperparams)):
-        if ix%60 not in repetitive_experiments:
+        if ix%48 not in repetitive_experiments:
             hyperparams_no_redundant.append(hyperparams[ix])
 
     with open(log_file + ".txt", 'w') as f:
@@ -263,8 +263,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
         # print(f"Params: {params}")
         # print(f"Nnet params: {nnet_params} ")
-        print(f"Gen Data Chosen {hyper}")
-        print(f"Gen data total exps: {len(hyperparams_no_redundant)}")
+        # print(f"Gen Data Chosen {hyper}")
+        # print(f"Gen data total exps: {len(hyperparams_no_redundant)}")
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -274,7 +274,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
         nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
                                              input_dims=input_dim, num_units_rep=128, dir=dir, offline=offline,
-                                             num_tiling=16, num_tile=4, method_sarsa=method_sarsa,
+                                             num_tiling=8, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, replace_target_cnt=replace_target_cnt, target_separate=target_separate)
 
     else:
@@ -572,8 +572,6 @@ if __name__ == "__main__":
                     args.data_dir = 'Data//cartpole_rnd_50000.npy'
                 if args.en == 'LunarLander':
                     args.data_dir = 'Data//LunarLander_rnd_50000.npy'
-
-
 
         if args.offline_online_training == 'offline_online':
             args.tr_offline = True
