@@ -760,9 +760,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
         for itr in range(1):
 
-            ## do update on step offline before running the agent
-            # Here pretraining step would be skipped if files already exist 
-            # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
+            # to not skip pretraining
+            # write it like this: if True or not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
             if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
                 print("Pre-training")
                 if TTN:
