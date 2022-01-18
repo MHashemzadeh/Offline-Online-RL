@@ -940,6 +940,7 @@ class TTNAgent_online_offline_mix(object):
     def learn_pretrain(self):
         print("nn.learn_pretrain")
         if self.tilecoding:
+            self.tilecoding_feature()
             feature = self.f_current
             nextfeature = self.f_next
             self.learn_fqi(feature, nextfeature)
