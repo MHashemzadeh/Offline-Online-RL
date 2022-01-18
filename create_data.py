@@ -222,13 +222,13 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%8 not in [1,2,3]):
+        if(i%12 not in [1,2]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
 
     # Getiing syntax error in print command for jobs that did not run
-    print(f"Number of Hyperparams: {count}")
+    # print(f"Number of Hyperparams: {count}")
     hyperparams = hyperparams_filtered
     
 

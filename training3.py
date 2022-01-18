@@ -134,7 +134,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%8 not in [1,2,3]):
+        if(i%12 not in [1,2]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
@@ -197,7 +197,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                               # Data Augmentation Params
                               ("data_aug_type", hyper[6]),
                               ("data_aug_prob", hyper[7]),
-                              ("data_aug_loc", hyper[8])
+                              ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
                               ("ras_beta", hyper[11])   #1.2 , 1.4
@@ -585,7 +585,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%8 not in [1,2,3]):
+        if(i%12 not in [1,2]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
@@ -650,7 +650,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                               # Data Augmentation Params
                               ("data_aug_type", hyper[6]),
                               ("data_aug_prob", hyper[7]),
-                              ("data_aug_loc", hyper[8])
+                              ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
                               ("ras_beta", hyper[11])   #1.2 , 1.4
@@ -768,7 +768,9 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             ## do update on step offline before running the agent
             # Here pretraining step would be skipped if files already exist 
             # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
-            if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
+
+            #Always pre-train in offline 
+            if True or (not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")):
                 print("Pre-training")
                 if TTN:
                     loss = nn.learn()
@@ -1086,7 +1088,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%8 not in [1,2,3]):
+        if(i%12 not in [1,2]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
@@ -1150,7 +1152,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               # Data Augmentation Params
                               ("data_aug_type", hyper[6]),
                               ("data_aug_prob", hyper[7]),
-                              ("data_aug_loc", hyper[8])
+                              ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
                               ("ras_beta", hyper[11])   #1.2 , 1.4
@@ -1267,8 +1269,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
         for itr in range(1):
 
             ## do offline-step update before running the agent
-            ##
-            if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
+            ## Always pre-train in Offline
+            if True or (not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")):
                 print("Pre-training")
 
                 if TTN:
