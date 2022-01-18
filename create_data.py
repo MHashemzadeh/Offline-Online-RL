@@ -174,7 +174,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    }
     ## TTN
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A", [0.0001, 0.001, 0.01, 0.03, 0.1]),
+                                    ("reg_A", [0.0001, 0.001, 0.003, 0.01, 0.03, 0.1]),
                                     # prev vals => [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3]
                                     ("eps_decay_steps", [1]),
                                     ("update_freq", [1000]),

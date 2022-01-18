@@ -527,7 +527,7 @@ class TTNAgent_online_offline_mix(object):
         if self.memory.mem_cntr < self.batch_size:
             return
 
-        self.learn_step_counter += 1
+        #self.learn_step_counter += 1
 
         # self.q_eval.optimizer.zero_grad()
         self.q_eval.zero_grad()
