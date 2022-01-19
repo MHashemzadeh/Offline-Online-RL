@@ -411,11 +411,21 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                     else:
                         nn.memory.store_transition(prev_state, np.squeeze(prev_action), reward, state, int(done))
 
-                    if TTN:
-                        loss = nn.learn()
+                    if tilecoding: # if tile coding, do FQI only.
+                        if TTN:
+                            print(f"[TTN] Going FQI in online due to tilecoding!")
+                            nn.load_data()
+                            nn.learn_pretrain()
+                        else:
+                            print(f"[DQN] Going FQI in online due to tilecoding!")
+                            nn.load_data()
+                            nn.learn_pretrain()
 
-                    else:  # DQN
-                        loss = nn.learn()
+                    else:  # no tc so do rep + FQI
+                        if TTN:
+                            loss = nn.learn()
+                        else: # DQN
+                            loss = nn.learn()
 
                     # run_losses.append(loss.detach())
 
@@ -592,7 +602,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
             fp.write(to_write + "\n")
     fp.close()
-
+    
     times = []
     start_time = time.perf_counter()
 
@@ -764,11 +774,21 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             # write it like this: if True or not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
             if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
                 print("Pre-training")
-                if TTN:
-                    loss = nn.learn()
+                if tilecoding:
+                    if TTN:
+                        print(f"[TTN] Warmup Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                    else:
+                        print(f"[DQN] Warmup Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                else:
+                    if TTN:
+                        loss = nn.learn()
 
-                else:  # DQN
-                    loss = nn.learn()
+                    else:  # DQN
+                        loss = nn.learn()
 
                 loss1 = loss
                 diff_loss = 1
@@ -788,21 +808,31 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                 #     loss1= loss
                 #     t += 1
 
-                batch_size = 64
-                for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
-                    num_iteration_feature = int(mem_size / batch_size)
-                    shuffle_index = np.arange(nnet_params['replay_memory_size'])
-                    np.random.shuffle(shuffle_index)
+                if tilecoding:
+                    if TTN:
+                        print(f"[TTN] Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                    else:
+                        print(f"[DQN] Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                else:
+                    batch_size = 64
+                    for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
+                        num_iteration_feature = int(mem_size / batch_size)
+                        shuffle_index = np.arange(nnet_params['replay_memory_size'])
+                        np.random.shuffle(shuffle_index)
 
-                    for itr in range(num_iteration_feature):
+                        for itr in range(num_iteration_feature):
 
-                        if TTN:
-                            loss = nn.learn_nn_feature_fqi(itr, shuffle_index)
-                            # print(loss)
+                            if TTN:
+                                loss = nn.learn_nn_feature_fqi(itr, shuffle_index)
+                                # print(loss)
 
-                        else:
-                            loss = nn.learn_nn_feature(itr, shuffle_index)
-                            # print(loss)
+                            else:
+                                loss = nn.learn_nn_feature(itr, shuffle_index)
+                                # print(loss)
 
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
@@ -913,12 +943,21 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                     else:
                         nn.memory.store_transition(prev_state, np.squeeze(prev_action), reward, state, int(done))
 
-                    if TTN:
-                        loss = nn.learn()
+                    if tilecoding: # if tc, then do this (FQI)
+                        if TTN:
+                            print(f"[TTN] Going FQI in online due to tilecoding!")
+                            nn.load_data()
+                            nn.learn_pretrain()
+                        else:
+                            print(f"[DQN] Going FQI in online due to tilecoding!")
+                            nn.load_data()
+                            nn.learn_pretrain()
 
-                    else:  # DQN
-                        loss = nn.learn()
-
+                    else:  # no tc
+                        if TTN:
+                            loss = nn.learn()
+                        else: # DQN
+                            loss = nn.learn()
                     # run_losses.append(loss.detach())
 
                 # do one step in the environment
@@ -1259,11 +1298,21 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
             if not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt"):
                 print("Pre-training")
 
-                if TTN:
-                    loss = nn.learn()
+                if tilecoding:
+                    if TTN:
+                        print(f"[TTN] Warmup Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                    else:
+                        print(f"[DQN] Warmup Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                else:
+                    if TTN:
+                        loss = nn.learn()
 
-                else:  # DQN
-                    loss = nn.learn()
+                    else:  # DQN
+                        loss = nn.learn()
 
                 loss1 = loss
                 diff_loss = 1
@@ -1283,23 +1332,31 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                 #     loss1= loss
                 #     t += 1
 
-                # How do you control number of fqi updates in pre-train offline?
+                if tilecoding:
+                    if TTN:
+                        print(f"[TTN] Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                    else:
+                        print(f"[DQN] Going FQI in offline due to tilecoding!")
+                        nn.load_data()
+                        nn.learn_pretrain()
+                else:
+                    batch_size = 64
+                    for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
+                        num_iteration_feature = int(mem_size / batch_size)
+                        shuffle_index = np.arange(nnet_params['replay_memory_size'])
+                        np.random.shuffle(shuffle_index)
 
-                batch_size = 64
-                for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
-                    num_iteration_feature = int(mem_size / batch_size)
-                    shuffle_index = np.arange(nnet_params['replay_memory_size'])
-                    np.random.shuffle(shuffle_index)
+                        for itr in range(num_iteration_feature):
 
-                    for itr in range(num_iteration_feature):
+                            if TTN:
+                                loss = nn.learn_nn_feature_fqi(itr, shuffle_index)
+                                # print(loss)
 
-                        if TTN:
-                            loss = nn.learn_nn_feature_fqi(itr, shuffle_index)
-                            # print(loss)
-
-                        else:
-                            loss = nn.learn_nn_feature(itr, shuffle_index)
-                            # print(loss)
+                            else:
+                                loss = nn.learn_nn_feature(itr, shuffle_index)
+                                # print(loss)
 
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path, 

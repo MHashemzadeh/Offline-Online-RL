@@ -933,6 +933,7 @@ class TTNAgent_online_offline_mix(object):
                 # self.lin_weights = self.tau* self.lin_weights + (1-self.tau) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
                 self.lin_weights = 0 * self.lin_weights + (1) * new_weights.reshape(
                     self.lin_weights.shape[0], self.lin_weights.shape[1])
+                print(f"Weights Updated | Shape {self.lin_weights.shape}")
             # self.learn_step_counter += 1
 
         return
