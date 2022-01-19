@@ -767,174 +767,177 @@ class TTNAgent_online_offline_mix(object):
 
     def learn_fqi(self, feature, nextfeature):
 
+        # make sure FQI updates are consistent in both cases (tc and no tc)
         with torch.no_grad():
 
             L = self.states_all_ch.shape[0]
 
             # for FQI:
-            # if (self.learn_step_counter + 2) % self.update_freq == 0 :
-            for rep in range(self.fqi_rep):
+            if (self.learn_step_counter + 2) % self.update_freq == 0 :
+                for rep in range(self.fqi_rep):
 
-                print("num rep:", self.fqi_rep)
-                ctr = 0
-                n = self.states_all_ch.shape[0]
-                nsqrt = np.sqrt(self.states_all_ch.shape[0])
-                A = 0
-                b = 0
-                for itr_mem in range(int(len(self.states_all_ch) / L)):
+                    print("num rep:", self.fqi_rep)
+                    ctr = 0
+                    n = self.states_all_ch.shape[0]
+                    nsqrt = np.sqrt(self.states_all_ch.shape[0])
+                    A = 0
+                    b = 0
+                    for itr_mem in range(int(len(self.states_all_ch) / L)):
 
-                    self.feature = feature[ctr * L: ctr * L + L]  # .to(self.q_eval.device)
-                    self.nextfeature = nextfeature[ctr * L: ctr * L + L]  # .to(self.q_eval.device)
+                        self.feature = feature[ctr * L: ctr * L + L]  # .to(self.q_eval.device)
+                        self.nextfeature = nextfeature[ctr * L: ctr * L + L]  # .to(self.q_eval.device)
 
-                    features_nextmem = self.nextfeature
+                        features_nextmem = self.nextfeature
 
-                    # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
+                        # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
 
-                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
-                    self.lin_values_next = self.update_lin_value(features_nextmem_bias)
-                    maxlinq = T.max(self.lin_values_next, dim=1)[0].data
-                    # maxlinq[self.dones_all_ch[ctr*L: ctr*L+L]] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+                        features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                        self.lin_values_next = self.update_lin_value(features_nextmem_bias)
+                        maxlinq = T.max(self.lin_values_next, dim=1)[0].data
+                        # maxlinq[self.dones_all_ch[ctr*L: ctr*L+L]] = 0
+                        expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
 
-                    # actions = self.actions_all_ch_[ctr * L: ctr * L + L].to(self.q_eval.device)
-                    # sarsa = T.zeros(L).to(self.q_eval.device)
-                    # for i in range(L):
-                    #     sarsa[i] = self.lin_values_next[i, actions[i]]
+                        # actions = self.actions_all_ch_[ctr * L: ctr * L + L].to(self.q_eval.device)
+                        # sarsa = T.zeros(L).to(self.q_eval.device)
+                        # for i in range(L):
+                        #     sarsa[i] = self.lin_values_next[i, actions[i]]
 
-                    if self.method == 'q-learning':
-                        # print("q-learning")
-                        maxlinq[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
-                        targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * maxlinq
-                    # elif self.method == 'sarsa':
-                    #     # print("sarsa")
-                    #     sarsa[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
-                    #     targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * sarsa
-                    elif self.method == 'expected-sarsa':
-                        # print("expected-sarsa")
-                        expectedsarsa[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
-                        targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * expectedsarsa
-                    else:
-                        raise AssertionError('method for fqi is wrong!')
+                        if self.method == 'q-learning':
+                            # print("q-learning")
+                            maxlinq[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
+                            targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * maxlinq
+                        # elif self.method == 'sarsa':
+                        #     # print("sarsa")
+                        #     sarsa[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
+                        #     targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * sarsa
+                        elif self.method == 'expected-sarsa':
+                            # print("expected-sarsa")
+                            expectedsarsa[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
+                            targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * expectedsarsa
+                        else:
+                            raise AssertionError('method for fqi is wrong!')
 
-                    # _, features_allmem, _ = self.q_eval.forward(states_all)
-                    features_allmem = self.feature
-                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                        # _, features_allmem, _ = self.q_eval.forward(states_all)
+                        features_allmem = self.feature
+                        features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
 
-                    feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
-                                            features_allmem_bias.shape[1]).to(self.q_eval.device)
+                        feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
+                                                features_allmem_bias.shape[1]).to(self.q_eval.device)
 
-                    actions_all_itr = self.actions_all_ch[ctr * L: ctr * L + L]
-                    for i in range(features_allmem_bias.shape[0]):
-                        feats_current[i, actions_all_itr[i], :] = features_allmem_bias[i, :]
+                        actions_all_itr = self.actions_all_ch[ctr * L: ctr * L + L]
+                        for i in range(features_allmem_bias.shape[0]):
+                            feats_current[i, actions_all_itr[i], :] = features_allmem_bias[i, :]
 
-                    # feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions,
-                    #                          features_allmem_bias.shape[1]).to(self.q_eval.device)
-                    # features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
-                    # actions_all_re1 = T.reshape(self.actions_all_ch, (self.actions_all_ch.shape[0], 1, 1))
-                    # actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
-                    # feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
+                        # feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions,
+                        #                          features_allmem_bias.shape[1]).to(self.q_eval.device)
+                        # features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                        # actions_all_re1 = T.reshape(self.actions_all_ch, (self.actions_all_ch.shape[0], 1, 1))
+                        # actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
+                        # feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
 
-                    feats_current = feats_current.view(-1, self.n_actions * features_allmem_bias.shape[1])
+                        feats_current = feats_current.view(-1, self.n_actions * features_allmem_bias.shape[1])
+
+                        if self.fqi_reg_type == 'prev':
+                            A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
+                            A += T.mm(A_tr, feats_current).to(self.q_eval.device)
+                            b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
+
+                        elif self.fqi_reg_type == 'l2':
+                            A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
+                            # A += (feats_current /nsqrt ).to(self.q_eval.device)
+                            # b += (T.unsqueeze(targets, 1) / nsqrt).to(self.q_eval.device)
+                            A += T.mm(A_tr, feats_current).to(self.q_eval.device)
+                            b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
+
+                        else:
+                            raise AssertionError('fqi_reg_type is wrong')
+
+                        # print(ctr)
+                        ctr += 1
+                        # if ctr == int(len(self.states_all_ch) / L): self.update_feature = True
+
+                    if self.states_all_ch.shape[0] > ctr * L:
+
+                        self.feature = feature[ctr * L:]  # .to(self.q_eval.device)
+                        self.nextfeature = nextfeature[ctr * L:]  # .to(self.q_eval.device)
+
+                        features_nextmem = self.nextfeature
+
+                        # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
+
+                        features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
+                        self.lin_values_next = self.update_lin_value(features_nextmem_bias)
+                        maxlinq = T.max(self.lin_values_next, dim=1)[0].data
+                        # maxlinq[self.dones_all_ch[ctr*L: ]] = 0
+                        expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
+                        expectedsarsa[self.dones_all_ch[ctr * L:]] = 0
+
+                        # targets = self.rewards_all_ch + self.gamma * maxlinq
+                        targets = self.rewards_all_ch[ctr * L:] + self.gamma * expectedsarsa
+
+                        # _, features_allmem, _ = self.q_eval.forward(states_all)
+                        features_allmem = self.feature
+                        features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
+
+                        feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
+                                                features_allmem_bias.shape[1]).to(self.q_eval.device)
+
+                        actions_all_itr = self.actions_all_ch[ctr * L:]
+                        for i in range(features_allmem_bias.shape[0]):
+                            feats_current[i, actions_all_itr[i], :] = features_allmem_bias[i, :]
+
+                        # feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions,
+                        #                          features_allmem_bias.shape[1]).to(self.q_eval.device)
+                        # features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
+                        # actions_all_re1 = T.reshape(self.actions_all_ch, (self.actions_all_ch.shape[0], 1, 1))
+                        # actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
+                        # feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
+
+                        feats_current = feats_current.view(-1, self.n_actions * features_allmem_bias.shape[1])
+
+                        if self.fqi_reg_type == 'prev':
+                            A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
+                            A += T.mm(A_tr, feats_current).to(self.q_eval.device)
+                            b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
+
+                        elif self.fqi_reg_type == 'l2':
+                            A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
+                            # A += (feats_current / nsqrt).to(self.q_eval.device)
+                            # b += (T.unsqueeze(targets, 1)/ nsqrt).to(self.q_eval.device)
+                            A += T.mm(A_tr, feats_current).to(self.q_eval.device)
+                            b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
+                        else:
+                            raise AssertionError('fqi_reg_type is wrong')
+
+                        # print(ctr)
+                        ctr += 1
 
                     if self.fqi_reg_type == 'prev':
-                        A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
-                        A += T.mm(A_tr, feats_current).to(self.q_eval.device)
-                        b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
-
+                        A += self.reg_A * T.eye(A_tr.shape[0]).to(self.q_eval.device)
+                        b += self.reg_A * self.lin_weights.reshape(-1, 1).to(self.q_eval.device)
+                        new_weights = T.lstsq(b, A)[0].to(
+                            self.q_eval.device)  # T.mm(A.inverse(), b) #T.lstsq(b, A)[0]  #T.mm(A.inverse(), b) #tf.matrix_solve(A, b)
                     elif self.fqi_reg_type == 'l2':
-                        A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
-                        # A += (feats_current /nsqrt ).to(self.q_eval.device)
-                        # b += (T.unsqueeze(targets, 1) / nsqrt).to(self.q_eval.device)
-                        A += T.mm(A_tr, feats_current).to(self.q_eval.device)
-                        b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
-
+                        A += 1 * self.reg_A * T.eye(A.shape[0], A.shape[1]).to(self.q_eval.device)
+                        # b += self.reg_A * self.lin_weights.reshape(-1, 1).to(self.q_eval.device)
+                        new_weights = T.lstsq(b, A)[0].to(self.q_eval.device)
+                        # new_weights = scipy.linalg.lstsq(A, b)[0]
                     else:
                         raise AssertionError('fqi_reg_type is wrong')
+                    # new_weights = T.transpose(T.reshape(T.squeeze(new_weights), [self.lin_weights.shape[1], self.lin_weights.shape[0]]), 0, 1)
+                    # self.lin_weights.data = (new_weights.data)
+                    # update_weights = new_weights
+                    # self.lin_weights = T.transpose(new_weights.reshape(self.lin_weights.shape[1], self.lin_weights.shape[0]), 0, 1)
 
-                    # print(ctr)
-                    ctr += 1
-                    # if ctr == int(len(self.states_all_ch) / L): self.update_feature = True
-
-                if self.states_all_ch.shape[0] > ctr * L:
-
-                    self.feature = feature[ctr * L:]  # .to(self.q_eval.device)
-                    self.nextfeature = nextfeature[ctr * L:]  # .to(self.q_eval.device)
-
-                    features_nextmem = self.nextfeature
-
-                    # q_next_allmem, features_nextmem, pred_states_nextmem = self.q_eval.forward(self.states_all_ch_)
-
-                    features_nextmem_bias = T.cat((features_nextmem, T.ones((features_nextmem.shape[0], 1)).to(self.q_eval.device)), 1)
-                    self.lin_values_next = self.update_lin_value(features_nextmem_bias)
-                    maxlinq = T.max(self.lin_values_next, dim=1)[0].data
-                    # maxlinq[self.dones_all_ch[ctr*L: ]] = 0
-                    expectedsarsa = (1 - self.epsilon) * maxlinq + T.sum(((self.epsilon / self.n_actions) * self.lin_values_next.data), dim=1)
-                    expectedsarsa[self.dones_all_ch[ctr * L:]] = 0
-
-                    # targets = self.rewards_all_ch + self.gamma * maxlinq
-                    targets = self.rewards_all_ch[ctr * L:] + self.gamma * expectedsarsa
-
-                    # _, features_allmem, _ = self.q_eval.forward(states_all)
-                    features_allmem = self.feature
-                    features_allmem_bias = T.cat((features_allmem, T.ones((features_allmem.shape[0], 1)).to(self.q_eval.device)), 1)
-
-                    feats_current = T.zeros(features_allmem_bias.shape[0], self.n_actions,
-                                            features_allmem_bias.shape[1]).to(self.q_eval.device)
-
-                    actions_all_itr = self.actions_all_ch[ctr * L:]
-                    for i in range(features_allmem_bias.shape[0]):
-                        feats_current[i, actions_all_itr[i], :] = features_allmem_bias[i, :]
-
-                    # feats_current1 = T.zeros(features_allmem_bias.shape[0], self.n_actions,
-                    #                          features_allmem_bias.shape[1]).to(self.q_eval.device)
-                    # features_allmem_bias_re = T.reshape(features_allmem_bias, (features_allmem_bias.shape[0], 1, features_allmem_bias.shape[1]))
-                    # actions_all_re1 = T.reshape(self.actions_all_ch, (self.actions_all_ch.shape[0], 1, 1))
-                    # actions_all_re = T.repeat_interleave(actions_all_re1, features_allmem_bias.shape[1], dim=2)
-                    # feats_current = feats_current1.scatter_(1, actions_all_re, features_allmem_bias_re)
-
-                    feats_current = feats_current.view(-1, self.n_actions * features_allmem_bias.shape[1])
-
-                    if self.fqi_reg_type == 'prev':
-                        A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
-                        A += T.mm(A_tr, feats_current).to(self.q_eval.device)
-                        b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
-
-                    elif self.fqi_reg_type == 'l2':
-                        A_tr = (T.transpose(feats_current, 0, 1) / n).to(self.q_eval.device)
-                        # A += (feats_current / nsqrt).to(self.q_eval.device)
-                        # b += (T.unsqueeze(targets, 1)/ nsqrt).to(self.q_eval.device)
-                        A += T.mm(A_tr, feats_current).to(self.q_eval.device)
-                        b += T.mm(A_tr, T.unsqueeze(targets, 1)).to(self.q_eval.device)
-                    else:
-                        raise AssertionError('fqi_reg_type is wrong')
-
-                    # print(ctr)
-                    ctr += 1
-
-                if self.fqi_reg_type == 'prev':
-                    A += self.reg_A * T.eye(A_tr.shape[0]).to(self.q_eval.device)
-                    b += self.reg_A * self.lin_weights.reshape(-1, 1).to(self.q_eval.device)
-                    new_weights = T.lstsq(b, A)[0].to(
-                        self.q_eval.device)  # T.mm(A.inverse(), b) #T.lstsq(b, A)[0]  #T.mm(A.inverse(), b) #tf.matrix_solve(A, b)
-                elif self.fqi_reg_type == 'l2':
-                    A += 1 * self.reg_A * T.eye(A.shape[0], A.shape[1]).to(self.q_eval.device)
-                    # b += self.reg_A * self.lin_weights.reshape(-1, 1).to(self.q_eval.device)
-                    new_weights = T.lstsq(b, A)[0].to(self.q_eval.device)
-                    # new_weights = scipy.linalg.lstsq(A, b)[0]
-                else:
-                    raise AssertionError('fqi_reg_type is wrong')
-                # new_weights = T.transpose(T.reshape(T.squeeze(new_weights), [self.lin_weights.shape[1], self.lin_weights.shape[0]]), 0, 1)
-                # self.lin_weights.data = (new_weights.data)
-                # update_weights = new_weights
-                # self.lin_weights = T.transpose(new_weights.reshape(self.lin_weights.shape[1], self.lin_weights.shape[0]), 0, 1)
-
-                # self.lin_weights = new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
-                # convex combination (Polyak-Ruppert Averaging)
-                # self.lin_weights = self.tau* self.lin_weights + (1-self.tau) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
-                self.lin_weights = 0 * self.lin_weights + (1) * new_weights.reshape(
-                    self.lin_weights.shape[0], self.lin_weights.shape[1])
-                print(f"Weights Updated | Shape {self.lin_weights.shape}")
-            # self.learn_step_counter += 1
+                    # self.lin_weights = new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
+                    # convex combination (Polyak-Ruppert Averaging)
+                    # self.lin_weights = self.tau* self.lin_weights + (1-self.tau) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
+                    self.lin_weights = 0 * self.lin_weights + (1) * new_weights.reshape(
+                        self.lin_weights.shape[0], self.lin_weights.shape[1])
+                    print(f"Weights Updated | Shape {self.lin_weights.shape}")
+            
+            self.learn_step_counter += 1
+            self.decrement_epsilon() # for TTN this remains the same.
 
         return
 

@@ -506,7 +506,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     data_length = data_lengths[data_length_num]
 
     fqi_reps = [1, 10, 50, 100, 300]
-    fqi_rep = fqi_reps[fqi_rep_num]
+    fqi_rep = fqi_reps[fqi_rep_num] # 1
 
     if feature == 'tc':
         tilecoding = 1
