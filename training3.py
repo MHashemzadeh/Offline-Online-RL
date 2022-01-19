@@ -1314,9 +1314,9 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                     else:  # DQN
                         loss = nn.learn()
 
-                loss1 = loss
-                diff_loss = 1
-                t = 0
+                # loss1 = loss
+                # diff_loss = 1
+                # t = 0
 
                 # while t < num_updates_pretrain: # and diff_loss> epsilon_stop_training:
                 #     for j in range(params["update_freq"] + 5):
