@@ -305,6 +305,7 @@ class TTNAgent_online_offline_mix(object):
 
             # loss = 0
             #TODO: Use target network here to make consistent with offline.
+            ## TODO: Try KLD
             if self.loss_features == "semi_MSTDE":
                 with torch.no_grad():
                     q_next_all, features_next, pred_states_next = self.q_eval.forward(states_)
@@ -446,8 +447,6 @@ class TTNAgent_online_offline_mix(object):
         self.decrement_epsilon()
 
         return loss
-
-        
 
     def learn_nn_feature(self, itr, shuffle_index):
         # print("learn features with NN")
@@ -931,9 +930,8 @@ class TTNAgent_online_offline_mix(object):
 
                     # self.lin_weights = new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
                     # convex combination (Polyak-Ruppert Averaging)
-                    # self.lin_weights = self.tau* self.lin_weights + (1-self.tau) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
-                    self.lin_weights = 0 * self.lin_weights + (1) * new_weights.reshape(
-                        self.lin_weights.shape[0], self.lin_weights.shape[1])
+                    self.lin_weights = self.tau * self.lin_weights + (1-self.tau) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
+                    # self.lin_weights = 0 * self.lin_weights + (1) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
                     # print(f"Weights Updated | Shape {self.lin_weights.shape}")
             
             self.learn_step_counter += 1
