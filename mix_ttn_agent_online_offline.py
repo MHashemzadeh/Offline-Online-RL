@@ -708,7 +708,7 @@ class TTNAgent_online_offline_mix(object):
             dones_all = T.tensor(self.memory.terminal_memory[:]).to(self.q_eval.device)
             # ep_all = T.tensor(self.memory.episode_memory[:]).to(self.q_eval.device)
 
-            print(self.method)
+            # print(self.method)
 
             if self.offline:
                 sp = 0 #100000
@@ -776,7 +776,7 @@ class TTNAgent_online_offline_mix(object):
             if (self.learn_step_counter + 2) % self.update_freq == 0 :
                 for rep in range(self.fqi_rep):
 
-                    print("num rep:", self.fqi_rep)
+                    # print("num rep:", self.fqi_rep)
                     ctr = 0
                     n = self.states_all_ch.shape[0]
                     nsqrt = np.sqrt(self.states_all_ch.shape[0])
@@ -811,7 +811,7 @@ class TTNAgent_online_offline_mix(object):
                         #     sarsa[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
                         #     targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * sarsa
                         elif self.method == 'expected-sarsa':
-                            # print("expected-sarsa")
+                            # print("expected-sarsa!")
                             expectedsarsa[self.dones_all_ch[ctr * L: ctr * L + L]] = 0
                             targets = self.rewards_all_ch[ctr * L: ctr * L + L] + self.gamma * expectedsarsa
                         else:
@@ -934,7 +934,7 @@ class TTNAgent_online_offline_mix(object):
                     # self.lin_weights = self.tau* self.lin_weights + (1-self.tau) * new_weights.reshape(self.lin_weights.shape[0], self.lin_weights.shape[1])
                     self.lin_weights = 0 * self.lin_weights + (1) * new_weights.reshape(
                         self.lin_weights.shape[0], self.lin_weights.shape[1])
-                    print(f"Weights Updated | Shape {self.lin_weights.shape}")
+                    # print(f"Weights Updated | Shape {self.lin_weights.shape}")
             
             self.learn_step_counter += 1
             self.decrement_epsilon() # for TTN this remains the same.
@@ -942,7 +942,7 @@ class TTNAgent_online_offline_mix(object):
         return
 
     def learn_pretrain(self):
-        print("nn.learn_pretrain")
+        # print("nn.learn_pretrain")
         if self.tilecoding:
             self.tilecoding_feature()
             feature = self.f_current
