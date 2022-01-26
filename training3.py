@@ -532,7 +532,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), # original => -3.25, -3.5, -3.75, -4.0, -4.25
-                                  ("eps_decay_steps", [1, 20000, 40000]),
+                                  ("eps_decay_steps", [10000, 20000, 40000]),
 
                                     # sparsity params
                                     ("if_sparsity", [0, 1]),
