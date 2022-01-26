@@ -24,7 +24,7 @@ def process_state_constructor(en):
                 states[3] = (states[3] - mean[3]) / (deviation[3])
                 states[4] = (states[4] - mean[4]) / (deviation[4])
                 states[5] = (states[5] - mean[5]) / (deviation[5])
-
+                
             elif en == "cartpole":
                 states = np.array([state[0], state[1], state[2], state[3]])
                 states[0] = states[0]

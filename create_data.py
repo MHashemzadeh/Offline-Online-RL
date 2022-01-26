@@ -21,6 +21,9 @@ from replay_memory import ReplayBuffer
 from training3 import train_offline_online, train_online, train_offline
 import training3
 np_load_old = np.load
+from utils.env_utils import process_state_constructor
+from ple.games.catcher import Catcher
+from ple import PLE
 
 # modify the default parameters of np.load
 np.load = lambda *a, **k: np_load_old(*a, allow_pickle=True)
@@ -129,14 +132,17 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
         env = gym.make('CartPole-v0')
         input_dim = env.observation_space.shape[0]
         num_act = 2
-    # elif en == "catcher":
-    #     game = Catcher(init_lives=1)
-    #     p = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards,
-    #             rng=rand_seed)
+    elif en == "catcher":
+        game = Catcher(init_lives=1)
+        process_state = process_state_constructor(en)
+        env = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards, rng=rand_seed)
+        input_dim = 4
+        num_act = 3
 
 
     ########## Setting the random seed ###########
-    env.seed(rand_seed)
+    if en != "catcher":
+        env.seed(rand_seed)
     T.manual_seed(rand_seed)
     np.random.seed(rand_seed)
     ##############################################
@@ -486,8 +492,6 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
 
 
-
-
     ### ====>>>>> plot() ---> utility
 
 
@@ -505,7 +509,7 @@ if __name__ == "__main__":
     parser.add_argument('--offline', type=bool, default=False)
     parser.add_argument('--fqi_rep_num', type=int, default=0)
     parser.add_argument('--num_step_ratio_mem', type=int, default=120000)
-    parser.add_argument('--en', type=str, default='Mountaincar')  # set name of the environment here e.g. Mountaincar,
+    parser.add_argument('--en', type=str, default='MountainCar')  # set name of the environment here e.g. Mountaincar,
     parser.add_argument('--fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--method_sarsa', type=str, default='expected-sarsa')  # expected-sarsa, q-learning
 

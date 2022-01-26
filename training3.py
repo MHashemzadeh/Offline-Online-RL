@@ -268,7 +268,8 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     for rep in range(num_repeats):
 
         rand_seed = rep * 32  # 332
-        env.seed(rand_seed)
+        if en != "catcher":
+            env.seed(rand_seed)
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
@@ -550,7 +551,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     num_steps = num_step_ratio_mem  # 200000
 
     ## select environment
-    env, input_dim, num_act = get_env(en)
+    catcher_rand_seed = num_rep * 32
+    env, input_dim, num_act = get_env(en, catcher_rand_seed)
 
     ### Normalize State
     process_state = process_state_constructor(en)
@@ -647,8 +649,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         for ix in range(len(hyperparams)):
             if ix%48 not in repetitive_experiments:
                 hyperparams_no_redundant.append(hyperparams[ix])
-                print(f"ID {ix} | {hyperparams[ix]}")
-        
+
         print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
         # write to a file to maintain the indexes
         with open(f"Offline-online//{alg}-Offline-online-sweep-parameters.txt", "w") as fp:
@@ -758,7 +759,9 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     for rep in range(num_repeats):
 
         rand_seed = rep * 332 #32  # 332
-        env.seed(rand_seed)
+        if en != "catcher":
+            env.seed(rand_seed)
+
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
@@ -1321,7 +1324,8 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     for rep in range(num_repeats):
 
         rand_seed = rep * 32  # 332
-        env.seed(rand_seed)
+        if en != "catcher":
+            env.seed(rand_seed)
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
