@@ -4,8 +4,6 @@ from deep_q_network import DeepQNetwork
 from replay_memory import ReplayBuffer
 from numba import jit
 
-
-
 class DQNAgent(object):
     def __init__(self, gamma, nnet_params, other_params, input_dims=4, dir=None, offline=False, status="online"):
 
@@ -29,17 +27,38 @@ class DQNAgent(object):
         self.offline = offline
         self.status = status
 
+        # sparsity parameters
+        self.if_sparsity = other_params["if_sparsity"]
+        self.tile_min, self.tile_max = other_params["bounds"]
+        self.layer_to_apply_sparsity_on = other_params["layers"]
+        self.bins = other_params["bins"]
+        self.pre_tiling_width = 20
+
         self.memory = ReplayBuffer(nnet_params['replay_memory_size'], input_dims,  self.n_actions, self.offline, self.memory_load_direction)
 
         self.q_eval = DeepQNetwork(self.lr, self.n_actions,
                                     name=self.env_name + '_' + self.algo + '_q_eval',
                                     input_dims=self.input_dims,
-                                    chkpt_dir=self.chkpt_dir, number_unit=128)
+                                    chkpt_dir=self.chkpt_dir, 
+                                    if_sparsity=self.if_sparsity,
+                                    tile_max=self.tile_max,
+                                    tile_min=self.tile_min,
+                                    bins=self.bins,
+                                    pre_tiling_width=self.pre_tiling_width,
+                                    layers_to_apply=self.layer_to_apply_sparsity_on,
+                                    number_unit=128)
 
         self.q_next = DeepQNetwork(self.lr, self.n_actions,
                                     name=self.env_name + '_' + self.algo + '_q_eval',
                                     input_dims=self.input_dims,
-                                    chkpt_dir=self.chkpt_dir, number_unit=128)
+                                    chkpt_dir=self.chkpt_dir, 
+                                    if_sparsity=self.if_sparsity,
+                                    tile_max=self.tile_max,
+                                    tile_min=self.tile_min,
+                                    bins=self.bins,
+                                    pre_tiling_width=self.pre_tiling_width,
+                                    layers_to_apply=self.layer_to_apply_sparsity_on,
+                                    number_unit=128)
 
     # def choose_action(self, observation):
     #     state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
@@ -53,12 +72,14 @@ class DQNAgent(object):
     #     return action, actions.detach()
 
     # @jit(target='cuda')
+    # add epsilon decay
     def choose_action(self, observation):
         if self.status == "offline":
             epsilon = 0
         elif self.status == "online":
             epsilon = self.epsilon
         elif self.status == "offline_online":
+            # TODO: add epsilon decay
             epsilon = self.epsilon
 
         with T.no_grad():
@@ -96,7 +117,13 @@ class DQNAgent(object):
 
     # @jit(target='cuda')
     def decrement_epsilon(self):
-        self.epsilon = self.epsilon
+        if self.learn_step_counter < self.eps_decay_steps:
+            self.epsilon = self.eps_init +  ((self.eps_final - self.eps_init) / self.eps_decay_steps) * self.learn_step_counter
+            print(f"Decaying. New Epsilon -> {self.epsilon} | Learn Step Counter {self.learn_step_counter} | Decay Steps {self.eps_decay_steps}")
+        else:
+            self.epsilon = self.eps_final
+        
+        # Original => self.epsilon = self.epsilon
         # self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
         # self.epsilon = self.eps_init * (self.eps_final ** (
         #             self.global_step / self.eps_decay_steps)) if self.epsilon > self.eps_final else self.eps_final

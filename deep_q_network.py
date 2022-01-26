@@ -5,18 +5,61 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 from numba import jit
+from utils.lta import tile_activation # sparsity import
 
 class DeepQNetwork(nn.Module):
-    def __init__(self, lr, n_actions, name, input_dims, chkpt_dir, number_unit = 128):
+    def __init__(self, lr, n_actions, name, input_dims, chkpt_dir, 
+                if_sparsity=False, tile_max=20, tile_min=-20, 
+                 bins=20, eta=2, pre_tiling_width=20,
+                 layers_to_apply=0, number_unit = 128):
+
         super(DeepQNetwork, self).__init__()
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
         self.input_dims = input_dims
+        
+        self.if_sparsity = int(if_sparsity)
+        self.bins = bins
+        self.layers_to_apply_sparsity = layers_to_apply
+        if eta < 0: # controls the sparsity
+            self.eta = 1.0 / self.bins
+        else:
+            self.eta = eta
 
-        self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
-        self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
-        self.fc3 = nn.Linear(number_unit, number_unit, bias=True)  # the representation layer
-        self.fc4 = nn.Linear(number_unit, n_actions, bias=True)  # the prediction layer
+        self.tile_min = tile_min
+        self.tile_max = tile_max
+
+        # construct network based on sparsity.
+        if self.if_sparsity == 0:
+            print(f"No Sparsity is added!")
+            self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
+            self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
+            self.fc3 = nn.Linear(number_unit, number_unit, bias=True)  # the representation layer
+            self.fc4 = nn.Linear(number_unit, n_actions, bias=True)  # the prediction layer
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc1":
+            print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
+            self.fc1 = nn.Linear(input_dims, pre_tiling_width, bias=True)
+            self.fc2 = nn.Linear(pre_tiling_width * bins, number_unit, bias=True)
+            self.fc3 = nn.Linear(number_unit, number_unit, bias=True)  # the representation layer
+            self.fc4 = nn.Linear(number_unit, n_actions, bias=True)  # the prediction layer
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc2":
+            print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
+            self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
+            self.fc2 = nn.Linear(number_unit, pre_tiling_width, bias=True)
+            self.fc3 = nn.Linear(pre_tiling_width * bins, number_unit, bias=True)  # the representation layer
+            self.fc4 = nn.Linear(number_unit, n_actions, bias=True)  # the prediction layer
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc1+fc2":
+            print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
+            self.fc1 = nn.Linear(input_dims, pre_tiling_width, bias=True)
+            self.fc2 = nn.Linear(pre_tiling_width * bins, pre_tiling_width, bias=True)
+            self.fc3 = nn.Linear(pre_tiling_width * bins, number_unit, bias=True)  # the representation layer
+            self.fc4 = nn.Linear(number_unit, n_actions, bias=True)  # the prediction layer
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc3":
+            print(f"Sparsity is added on {self.layers_to_apply_sparsity}!")
+            self.fc1 = nn.Linear(input_dims, number_unit, bias=True)
+            self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
+            self.fc3 = nn.Linear(number_unit, pre_tiling_width, bias=True)  # the representation layer
+            self.fc4 = nn.Linear(pre_tiling_width * bins, n_actions, bias=True)  # the prediction layer
 
         nn.init.xavier_uniform(self.fc1.weight)
         nn.init.xavier_uniform(self.fc2.weight)
@@ -39,9 +82,32 @@ class DeepQNetwork(nn.Module):
         """
         # print(state)
         # state = Variable(T.from_numpy(state))
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+        if self.if_sparsity == 0:
+            x = F.relu(self.fc1(state))
+            x = F.relu(self.fc2(x))
+            x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc1":
+            x = self.fc1(state)
+            x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+            x = F.relu(self.fc2(x))
+            x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc2":
+            x = F.relu(self.fc1(state))
+            x = self.fc2(x)
+            x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+            x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc3":
+            x = F.relu(self.fc1(state))
+            x = F.relu(self.fc2(x))
+            x = self.fc3(x)  # + T.zeros(1, self.input_dims)  # do we need to add bias
+            x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+        elif self.if_sparsity == 1 and self.layers_to_apply_sparsity == "fc1+fc2":
+            x = self.fc1(state)
+            x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+            x = self.fc2(x)
+            x = tile_activation(x, self.tile_min, self.tile_max, self.bins, self.eta)  # ITA applied to fc1's output.
+            x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
+
         self.predictions = self.fc4(x)
 
         return self.predictions
@@ -55,30 +121,6 @@ class DeepQNetwork(nn.Module):
     def load_checkpoint(self):
         print('... loading checkpoint ...')
         self.load_state_dict(T.load(self.checkpoint_file))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     #     super(DeepQNetwork, self).__init__()
     #     self.checkpoint_dir = chkpt_dir

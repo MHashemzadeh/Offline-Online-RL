@@ -531,8 +531,14 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     # np.random.seed(rand_seed)
 
     # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), # original => -3.25, -3.5, -3.75, -4.0, -4.25
                                   ("eps_decay_steps", [1, 20000, 40000]),
+
+                                    # sparsity params
+                                    ("if_sparsity", [0, 1]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2", "fc3"]),
+                                    ("tilings", [10, 20])
                                   ])
 
     ## DQN
@@ -589,19 +595,36 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     hyperparams = hyperparams_all
     hyperparams_no_redundant = []
     
-    # remove redundant experiments.
-    repetitive_experiments = [x for x in range(1, 24)]
-    for ix in range(len(hyperparams)):
-        if ix%48 not in repetitive_experiments:
-            hyperparams_no_redundant.append(hyperparams[ix])
+    if TTN:
+        # remove redundant experiments.
+        repetitive_experiments = [x for x in range(1, 24)]
+        for ix in range(len(hyperparams)):
+            if ix%48 not in repetitive_experiments:
+                hyperparams_no_redundant.append(hyperparams[ix])
 
-    print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
-    # write to a file to maintain the indexes
-    with open("Offline-online//Offline-online-sweep-parameters.txt", "w") as fp:
-        for ix in range(len(hyperparams_no_redundant)):
-            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
-            fp.write(to_write + "\n")
-    fp.close()
+        print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
+        # write to a file to maintain the indexes
+        with open("Offline-online//Offline-online-sweep-parameters.txt", "w") as fp:
+            for ix in range(len(hyperparams_no_redundant)):
+                to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
+                fp.write(to_write + "\n")
+        fp.close()
+    
+    else: # DQN
+        print(f"[DQN] Params!")
+        # remove redundant experiments.
+        repetitive_experiments = [x for x in range(1, 24)]
+        for ix in range(len(hyperparams)):
+            if ix%48 not in repetitive_experiments:
+                hyperparams_no_redundant.append(hyperparams[ix])
+        
+        print(f"Total Experiments to Run: {len(hyperparams_no_redundant)}")
+        # write to a file to maintain the indexes
+        with open(f"Offline-online//{alg}-Offline-online-sweep-parameters.txt", "w") as fp:
+            for ix in range(len(hyperparams_no_redundant)):
+                to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams_no_redundant[ix]])
+                fp.write(to_write + "\n")
+        fp.close()
     
     times = []
     start_time = time.perf_counter()
@@ -659,12 +682,20 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                               ("bins", hyper[9])
                               ])
 
-        print(f"Params: {params}")
-        print(f"Nnet params: {nnet_params}")
+        print(f"[TTN] Params: {params}")
+        print(f"[TTN] Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
-                              ("eps_decay_steps", hyper[1])])
+                              ("eps_decay_steps", hyper[1]),
+                              # sparsity params
+                              ("if_sparsity", hyper[2]),
+                              ("bounds", hyper[3]),
+                              ("layers", hyper[4]),
+                              ("bins", hyper[5])
+                              ])
+        
+        print(f"[DQN] Params: {params}")
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
@@ -789,6 +820,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
                     else:  # DQN
                         loss = nn.learn()
+                        print("Offline 1 Loss - ", loss)
 
                 # loss1 = loss
                 # diff_loss = 1
@@ -837,7 +869,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
                             else:
                                 loss = nn.learn_nn_feature(itr, shuffle_index)
-                                # print(loss)
+                                print("Offline 2 Loss - ", loss)
 
                 if TTN:
                     T.save(nn.q_eval.state_dict(), "{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")
@@ -963,6 +995,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                             loss = nn.learn()
                         else: # DQN
                             loss = nn.learn()
+                            print("Online Loss - ", loss)
                     # run_losses.append(loss.detach())
 
                 # do one step in the environment
