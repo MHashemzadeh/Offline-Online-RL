@@ -145,8 +145,14 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     ########### FIXME: This part should be put in seperate files like config files #############
 
     # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [1, 20000, 40000]),
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), # original => -3.25, -3.5, -3.75, -4.0, -4.25
+                                  ("eps_decay_steps", [10000, 20000, 40000]),
+
+                                    # sparsity params
+                                    ("if_sparsity", [0, 1]),
+                                    ("bounds", [[-1, 1], [-2, 2], [-20, 20]]),
+                                    ("layers", ["fc1", "fc2", "fc1+fc2", "fc3"]),
+                                    ("tilings", [10, 20])
                                   ])
 
     ## DQN
@@ -268,20 +274,24 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
-                              ("eps_decay_steps", hyper[1])])
+                              ("eps_decay_steps", hyper[1]),
+                              # sparsity params
+                              ("if_sparsity", hyper[2]),
+                              ("bounds", hyper[3]),
+                              ("layers", hyper[4]),
+                              ("bins", hyper[5])
+                              ])
 
-    if TTN:
+    def generate_data(): # QSTN: Why this should be an inner function? we can put it in a seperate file.
 
-        nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
+        if TTN:
+            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
                                              input_dims=input_dim, num_units_rep=128, dir=dir, offline=offline,
                                              num_tiling=8, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, replace_target_cnt=replace_target_cnt, target_separate=target_separate)
 
-    else:
-        nn = DQNAgent(gamma, q_nnet_params, params, input_dims=input_dim)
-
-
-    def generate_data(): # QSTN: Why this should be an inner function? we can put it in a seperate file.
+        else:
+            nn = DQNAgent(gamma, q_nnet_params, params, input_dims=input_dim)
 
         for rep in range(1):
 
