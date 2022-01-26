@@ -21,11 +21,18 @@ from replay_memory import ReplayBuffer
 from training3 import train_offline_online, train_online, train_offline
 import training3
 np_load_old = np.load
-
+from utils.env_utils import process_state_constructor
+from ple.games.catcher import Catcher
+from ple import PLE
 # modify the default parameters of np.load
 np.load = lambda *a, **k: np_load_old(*a, allow_pickle=True)
 # np.load = lambda *a,**k: np_load_old(*a,**k,allow_pickle=True)
 import gym
+from scipy import sparse
+
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 # from numba import jit
 # import nvidia_smi
 
@@ -134,12 +141,27 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     #     p = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards,
     #             rng=rand_seed)
 
+    elif en == "catcher":
+        game = Catcher(init_lives=1)
+        process_state = process_state_constructor(en)
+        env = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards, rng=rand_seed)
+        input_dim = 4
+        num_act = 3
+
 
     ########## Setting the random seed ###########
-    env.seed(rand_seed)
+    if en != "catcher":
+        env.seed(rand_seed)
     T.manual_seed(rand_seed)
     np.random.seed(rand_seed)
     ##############################################
+
+
+    # ########## Setting the random seed ###########
+    # env.seed(rand_seed)
+    # T.manual_seed(rand_seed)
+    # np.random.seed(rand_seed)
+    # ##############################################
 
 
     ########### FIXME: This part should be put in seperate files like config files #############
@@ -176,16 +198,20 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), 
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]),
                                     ("eps_decay_steps", [1]),
-                                    ("update_freq", [1000]),
+                                    ("update_freq", [1000]),  # default 1000
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0, 0.01, 0.05, 0.1]),
-                                    ("data_aug_loc", ['rep', 'fqi', 'both']),
+                                    ("data_aug_prob", [0.0]),  #[0.0, 0.01, 0.05, 0.1]
+                                    ("data_aug_loc", ['rep']), #['rep', 'fqi', 'both']
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.9]), #0.6 , 0.8
-                                    ("ras_beta", [1.1])   #1.2 , 1.4
+                                    ("ras_beta", [1.1]),   #1.2 , 1.4
+                                    # Input Transformations Params
+                                    ("trans_type", ['none', 'sparse', 'sparse_random']),
+                                    ("new_feat_dim", [32, 64, 128]),
+                                    ("sparse_density", [0.1, 0.5])
                                     ])
 
     #################################################################################################
@@ -218,7 +244,7 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
 
-    # Removing redundant experiments for data_aug_prob = 0
+    # # Removing redundant experiments for data_aug_prob = 0
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
@@ -267,7 +293,11 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
-                              ("ras_beta", hyper[11])   #1.2 , 1.4
+                              ("ras_beta", hyper[11]),   #1.2 , 1.4
+                              # Input Transformation Params
+                              ("trans_type", hyper[12]),
+                              ("new_feat_dim", hyper[13]),
+                              ("sparse_density", hyper[14])
                               ])
 
         print(f"Params: {params}")
@@ -279,7 +309,27 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     if TTN:
 
-        nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
+        # #######                        Creating Identity matrix                      #######
+        if(params["trans_type"] == "none"):
+            sparse_matrix = np.identity(input_dim)
+        # #######                        Creating Sparse matrix                      #######
+        elif(params["trans_type"] == "sparse"):
+            sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
+            #making sure that original features occur atleast once in the new features
+            for row in range(sparse_matrix.shape[0]):
+                sparse_matrix[row][row] = 1.0
+
+        elif(params["trans_type"] == "sparse_random"):
+            #######                        Creating Sparse random matrix                      #######
+            sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
+            sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
+            #making sure that original features occur atleast once in the new features
+            for row in range(sparse_matrix.shape[0]):
+                sparse_matrix[row][row] = 1.0
+
+        print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
+
+        nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params, sparse_matrix=sparse_matrix,
                                              input_dims=input_dim, num_units_rep=128, dir=dir, offline=offline,
                                              num_tiling=16, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, replace_target_cnt=replace_target_cnt, target_separate=target_separate)
@@ -304,13 +354,22 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                 prev_state = None
                 prev_action = None
                 done = 0
-                state_unnormal = env.reset()
+
+                if en != "catcher":
+                    state_unnormal = env.reset()
+                else:
+                    state_unnormal = env.reset_game()
+
                 state = process_state(state_unnormal)
                 # populate the replay buffer
                 while nn.memory.mem_cntr < mem_size: #nnet_params["replay_init_size"]:
 
                     if done:
-                        state_unnormal = env.reset()
+                        if en != "catcher":
+                            state_unnormal = env.reset()
+                        else:
+                            state_unnormal = env.reset_game()
+
                         state = process_state(state_unnormal)
 
                     # get action
@@ -352,7 +411,11 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
             ctr = 0
             ch = 0
 
-            state_unnormal = env.reset()
+            if en != "catcher":
+                state_unnormal = env.reset()
+            else:
+                state_unnormal = env.reset_game()
+
             state = process_state(state_unnormal)
             i = 0
 
@@ -386,7 +449,11 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                     i = 0
                     episodes += 1
                     episode_length = 0
-                    state_unnormal = env.reset()
+                    if en != "catcher":
+                        state_unnormal = env.reset()
+                    else:
+                        state_unnormal = env.reset_game()
+                        
                     state = process_state(state_unnormal)
 
 

@@ -25,6 +25,10 @@ from pathlib import Path
 import json
 
 from scipy import sparse
+
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 # np_load_old = np.load
 
 # modify the default parameters of np.load
@@ -60,9 +64,10 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     gamma = 0.99
 
     num_steps = num_step_ratio_mem  # 200000
+    rand_seed = num_rep * 32
 
     ## select environment
-    env, input_dim, num_act = get_env(en)
+    env, input_dim, num_act = get_env(en, seed=rand_seed)
 
     ### Normalize State
     process_state = process_state_constructor(en)
@@ -139,7 +144,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%12 not in [1,2]):
+        if(i%18 not in [1,2,3,4,5]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
@@ -222,15 +227,20 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
+    # #######                        Creating Identity matrix                      #######
+    if(params["trans_type"] == "none"):
+        sparse_matrix = np.identity(input_dim)
+
     # #######                        Creating Sparse matrix                      #######
-    if(params["trans_type"] == "sparse"):
+    elif(params["trans_type"] == "sparse"):
         sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
         #making sure that original features occur atleast once in the new features
         for row in range(sparse_matrix.shape[0]):
             sparse_matrix[row][row] = 1.0
 
+    #######                        Creating Sparse random matrix                      #######
     elif(params["trans_type"] == "sparse_random"):
-        #######                        Creating Sparse random matrix                      #######
+        
         sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
         sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
         #making sure that original features occur atleast once in the new features
@@ -266,8 +276,12 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
     for rep in range(num_repeats):
 
+
         rand_seed = rep * 32  # 332
-        env.seed(rand_seed)
+        
+        if en != "catcher":
+            env.seed(rand_seed)
+
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
@@ -297,13 +311,22 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                 prev_state = None
                 prev_action = None
                 done = 0
-                state_unnormal = env.reset()
+
+                if en != "catcher":
+                    state_unnormal = env.reset()
+                else:
+                    state_unnormal = env.reset_game()
+
                 state = process_state(state_unnormal)
                 # populate the replay buffer
                 while nn.memory.mem_cntr < nnet_params["replay_init_size"]:
 
                     if done:
-                        state_unnormal = env.reset()
+                        if en != "catcher":
+                            state_unnormal = env.reset()
+                        else:
+                            state_unnormal = env.reset_game()
+                            
                         state = process_state(state_unnormal)
 
                     # get action
@@ -363,14 +386,22 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
             episode_length = 0
             count_10epi = 0
 
-            env.reset()
+            if en != "catcher":
+                env.reset()
+            else:
+                env.reset_game()
+
             # game = env.unwrapped
             # env.state = saved_state_list[count_10epi]
             # state_unnormal = env.state
             # state = process_state(state_unnormal)
 
             # state_unnormal = env.unwrapped.state
-            state_unnormal = env.reset()
+            if en != "catcher":
+                state_unnormal = env.reset()
+            else:
+                state_unnormal = env.reset_game()
+
             state = process_state(state_unnormal)
 
             start_run_time = time.perf_counter()
@@ -405,13 +436,20 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                     i = 0
                     episodes += 1
 
-                    env.reset()
+                    if en != "catcher":
+                        env.reset()
+                    else:
+                        env.reset_game()
                     # env.state = saved_state_list[count_10epi]
                     # state_unnormal = env.state
                     # state = process_state(state_unnormal)
 
                     # state_unnormal = env.unwrapped.state
-                    state_unnormal = env.reset()
+                    if en != "catcher":
+                        state_unnormal = env.reset()
+                    else:
+                        state_unnormal = env.reset_game()
+
                     state = process_state(state_unnormal)
 
                     if TTN:
@@ -538,8 +576,11 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     num_steps = num_step_ratio_mem  # 200000
 
+    rand_seed = num_rep * 32
+
     ## select environment
-    env, input_dim, num_act = get_env(en)
+    env, input_dim, num_act = get_env(en, seed=rand_seed)
+
 
     ### Normalize State
     process_state = process_state_constructor(en)
@@ -615,7 +656,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%12 not in [1,2]):
+        if(i%18 not in [1,2,3,4,5]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
@@ -698,9 +739,12 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
+    # #######                        Creating Identity matrix                      #######
+    if(params["trans_type"] == "none"):
+        sparse_matrix = np.identity(input_dim)
 
      # #######                        Creating Sparse matrix                      #######
-    if(params["trans_type"] == "sparse"):
+    elif(params["trans_type"] == "sparse"):
         sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
         #making sure that original features occur atleast once in the new features
         for row in range(sparse_matrix.shape[0]):
@@ -745,7 +789,11 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     for rep in range(num_repeats):
 
         rand_seed = rep * 332 #32  # 332
-        env.seed(rand_seed)
+
+        if en != "catcher":
+            env.seed(rand_seed)
+
+        # env.seed(rand_seed)
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
@@ -775,13 +823,21 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                 prev_state = None
                 prev_action = None
                 done = 0
-                state_unnormal = env.reset()
+                if en != "catcher":
+                    state_unnormal = env.reset()
+                else:
+                    state_unnormal = env.reset_game()
+
                 state = process_state(state_unnormal)
                 # populate the replay buffer
                 while nn.memory.mem_cntr < nnet_params["replay_init_size"]:
 
                     if done:
-                        state_unnormal = env.reset()
+                        if en != "catcher":
+                            state_unnormal = env.reset()
+                        else:
+                            state_unnormal = env.reset_game()
+
                         state = process_state(state_unnormal)
 
                     # get action
@@ -900,14 +956,21 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             episode_length = 0
             count_10epi = 0
 
-            env.reset()
+            if en != "catcher":
+                env.reset()
+            else:
+                env.reset_game()
             # game = env.unwrapped
             # env.state = saved_state_list[count_10epi]
             # state_unnormal = env.state
             # state = process_state(state_unnormal)
 
             # state_unnormal = env.unwrapped.state
-            state_unnormal = env.reset()
+            if en != "catcher":
+                state_unnormal = env.reset()
+            else:
+                state_unnormal = env.reset_game()
+
             state = process_state(state_unnormal)
 
             start_run_time = time.perf_counter()
@@ -941,13 +1004,19 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                     i = 0
                     episodes += 1
 
-                    env.reset()
+                    if en != "catcher":
+                        env.reset()
+                    else:
+                        env.reset_game()
                     # env.state = saved_state_list[count_10epi]
                     # state_unnormal = env.state
                     # state = process_state(state_unnormal)
 
                     # state_unnormal = env.unwrapped.state
-                    state_unnormal = env.reset()
+                    if en != "catcher":
+                        state_unnormal = env.reset()
+                    else:
+                        state_unnormal = env.reset_game()
                     state = process_state(state_unnormal)
                     if TTN:
                         nn.load_data()
@@ -1068,8 +1137,10 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
     num_steps = num_step_ratio_mem  # 70K for offline default
 
+    rand_seed = num_rep * 32
+
     ## select environment
-    env, input_dim, num_act = get_env(en)
+    env, input_dim, num_act = get_env(en, seed=rand_seed)
 
     ### Normalize State
     process_state = process_state_constructor(en)
@@ -1145,7 +1216,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
-        if(i%12 not in [1,2]):
+        if(i%18 not in [1,2,3,4,5]):
             hyperparams_filtered.append(hyperparams[i])
             count += 1
 
@@ -1228,8 +1299,12 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
+    # #######                        Creating Identity matrix                      #######
+    if(params["trans_type"] == "none"):
+        sparse_matrix = np.identity(input_dim)
+
     # #######                        Creating Sparse matrix                      #######
-    if(params["trans_type"] == "sparse"):
+    elif(params["trans_type"] == "sparse"):
         sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
         #making sure that original features occur atleast once in the new features
         for row in range(sparse_matrix.shape[0]):
@@ -1274,7 +1349,10 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     for rep in range(num_repeats):
 
         rand_seed = rep * 32  # 332
-        env.seed(rand_seed)
+
+        if en != "catcher":
+            env.seed(rand_seed)
+
         T.manual_seed(rand_seed)
         np.random.seed(rand_seed)
 
@@ -1304,13 +1382,21 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                 prev_state = None
                 prev_action = None
                 done = 0
-                state_unnormal = env.reset()
+                if en != "catcher":
+                    state_unnormal = env.reset()
+                else:
+                    state_unnormal = env.reset_game()
+
                 state = process_state(state_unnormal)
                 # populate the replay buffer
                 while nn.memory.mem_cntr < nnet_params["replay_init_size"]:
 
                     if done:
-                        state_unnormal = env.reset()
+                        if en != "catcher":
+                            state_unnormal = env.reset()
+                        else:
+                            state_unnormal = env.reset_game()
+
                         state = process_state(state_unnormal)
 
                     # get action
@@ -1427,14 +1513,21 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
             episode_length = 0
             count_10epi = 0
 
-            env.reset()
+            if en != "catcher":
+                env.reset()
+            else:
+                env.reset_game()
             # game = env.unwrapped
             # env.state = saved_state_list[count_10epi]
             # state_unnormal = env.state
             # state = process_state(state_unnormal)
 
             # state_unnormal = env.unwrapped.state
-            state_unnormal = env.reset()
+            if en != "catcher":
+                state_unnormal = env.reset()
+            else:
+                state_unnormal = env.reset_game()
+
             state = process_state(state_unnormal)
 
             start_run_time = time.perf_counter()
@@ -1476,13 +1569,20 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                     i = 0
                     episodes += 1
 
-                    env.reset()
+                    if en != "catcher":
+                        env.reset()
+                    else:
+                        env.reset_game()
                     # env.state = saved_state_list[count_10epi]
                     # state_unnormal = env.state
                     # state = process_state(state_unnormal)
 
                     # state_unnormal = env.unwrapped.state
-                    state_unnormal = env.reset()
+                    if en != "catcher":
+                        state_unnormal = env.reset()
+                    else:
+                        state_unnormal = env.reset_game()
+
                     state = process_state(state_unnormal)
 
                 # Get action

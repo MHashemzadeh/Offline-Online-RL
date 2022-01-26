@@ -12,10 +12,14 @@ from torch.autograd import Variable
 
 
 class TTNNetwork(nn.Module):
-    def __init__(self, beta1, beta2, lr, n_actions, input_dims, number_unit=128, num_units_rep=128):
+    def __init__(self, beta1, beta2, lr, n_actions, input_dims, sparse_matrix, number_unit=128, num_units_rep=128):
         super(TTNNetwork, self).__init__()
 
+        self.sparse_matrix = sparse_matrix
         self.input_dims = input_dims
+
+        # #hard code for testing
+        # self.input_dims = 128
 
 
 
@@ -23,7 +27,8 @@ class TTNNetwork(nn.Module):
         # self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
         # self.fc3 = nn.Linear(number_unit, num_units_rep, bias=True) # the representation layer
         self.rep = nn.Sequential(
-            nn.Linear(input_dims, number_unit, bias=True),
+            
+            nn.Linear(self.sparse_matrix.shape[1], number_unit, bias=True),  ## For adding sparse inputs, need a better way to deal with it
             nn.ReLU(),
             nn.Linear(number_unit, number_unit, bias=True),
             nn.ReLU(),
@@ -31,7 +36,10 @@ class TTNNetwork(nn.Module):
             nn.ReLU(),
         )
         self.fc4 = nn.Linear(num_units_rep, n_actions, bias=True) # the prediction layer
-        self.fc5 = nn.Linear(num_units_rep, n_actions*input_dims, bias=True) # the state-prediction layer
+
+        ## Use this layer to predict original state from the random sparse input passed throug rep part
+        self.fc5 = nn.Linear(num_units_rep, n_actions*self.sparse_matrix.shape[1], bias=True) # the state-prediction layer 
+
 
 
         # nn.init.kaiming_normal_(self.fc1.weight, nonlinearity="relu", mode='fan_in')
@@ -55,7 +63,7 @@ class TTNNetwork(nn.Module):
         nn.init.xavier_uniform_(self.fc4.weight)
         nn.init.xavier_uniform_(self.fc5.weight)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=lr, betas=(beta1, beta2), eps=1e-08, weight_decay=0, amsgrad=True)
+        self.optimizer = optim.Adam(self.parameters(), lr=lr, betas=(beta1, beta2), eps=1e-08, weight_decay=0.0, amsgrad=True)
         # self.optimizer = optim.RMSprop(self.parameters(), lr=lr)
 
         self.loss = nn.MSELoss()

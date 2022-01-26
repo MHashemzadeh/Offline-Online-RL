@@ -14,7 +14,7 @@ import warnings
 
 
 class TTNAgent_online_offline_mix(object):
-    def __init__(self, gamma, nnet_params, other_params, input_dims=4, num_units_rep=128, dir=None, offline=False,
+    def __init__(self, gamma, nnet_params, other_params, sparse_matrix, input_dims=4, num_units_rep=128, dir=None, offline=False,
                  num_tiling=16, num_tile=4, method_sarsa='expected-sarsa', tilecoding=1, replace_target_cnt=1000,
                  target_separate=False, status="online", data_aug_prob=""):
         # gamma, loss_features, beta1, beta2, eps_init, eps_final, num_actions, replay_memory_size, replay_init_size, pretrain_rep_steps, freeze_rep,batch_size, fqi_reg_type, nn_lr, reg_A, eps_decay_steps, update_freq, input_dims, num_units_rep,
@@ -39,6 +39,11 @@ class TTNAgent_online_offline_mix(object):
         self.data_aug_loc = other_params['data_aug_loc'] # Where to apply augmentation: in rep learning, in fqi updates, or in both rep learning and fqi updates
         self.data_aug_pad = other_params['random_shift_pad'] # The number of pixels that will be padded for random shift technique. 4 usually works fine for this so there is no need to tune it
 
+        ##### Input Transformation Params #####
+        self.trans_type = other_params["trans_type"]
+        self.new_feat_dim = other_params["new_feat_dim"]
+        self.sparse_density = other_params["sparse_density"]
+        
         self.lr = other_params['nn_lr']
         self.reg_A = other_params['reg_A']
         self.data_length = other_params['data_length']
@@ -91,12 +96,12 @@ class TTNAgent_online_offline_mix(object):
             self.q_eval = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     number_unit=self.number_unit,
-                                    num_units_rep=self.num_units_rep)
+                                    num_units_rep=self.num_units_rep, sparse_matrix=sparse_matrix)
 
             self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
                                     input_dims=self.input_dims,
                                     number_unit=self.number_unit,
-                                    num_units_rep=self.num_units_rep)
+                                    num_units_rep=self.num_units_rep, sparse_matrix=sparse_matrix)
         elif len(self.input_dims) == 3: #TODO: this part needs to be just for maze so maybe we have to add the environment as part of this class input. This part should be modified for minatar
             self.q_eval = TTNNetworkMaze(self.beta1, self.beta2, self.lr, self.n_actions,
                                     input_dims=self.input_dims, num_units_rep=self.num_units_rep)
@@ -107,6 +112,12 @@ class TTNAgent_online_offline_mix(object):
             raise ValueError('Tile coding is not defined for this specifc input shape: {}'.format(self.input_dims))
 
 
+        ##### Sparse Input Params ##### 
+        self.sparse_matrix = sparse_matrix  ## What if no sparse inputs? how to define base sparse matrix which when applied does nothing.
+        ## converting sparse matrix to tensor
+        self.sparse_matrix = T.tensor(self.sparse_matrix, dtype=T.float).to(self.q_eval.device)
+
+        
         # self.q_next, self.features_next, self.pred_states_next
         # self.q_next = TTNNetwork(self.beta1, self.beta2, self.lr, self.n_actions,
         #                             input_dims=self.input_dims,
@@ -219,6 +230,9 @@ class TTNAgent_online_offline_mix(object):
 
                 #TODO: Do we need augmentation before choosing action?
 
+                ##### Upscaling the input state with sparse matrix ##### 
+                state = T.matmul(state, self.sparse_matrix)
+
                 q_pred, features, pred_states = self.q_eval.forward(state)
                 features_bias = T.cat((features, T.ones((features.shape[0], 1)).to(self.q_eval.device)), 1)
                 # print(features_bias)
@@ -258,6 +272,11 @@ class TTNAgent_online_offline_mix(object):
 
             states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction()
             indices = np.arange(self.batch_size)
+
+
+            ##### Upscaling the input state with sparse matrix ##### 
+            states = T.matmul(states, self.sparse_matrix)
+            states_ = T.matmul(states_, self.sparse_matrix)
 
 
             #### Data Augmentation #####
@@ -350,6 +369,9 @@ class TTNAgent_online_offline_mix(object):
                         states_all, actions_all, rewards_all, states_all_, actions_all_, dones_all = self.memory.sample_buffer_nextaction_consequtive_chunk(self.data_length)
 
                    
+                    ##### Upscaling the input state with sparse matrix ##### 
+                    states_all = T.matmul(states_all, self.sparse_matrix)
+                    states_all_ = T.matmul(states_all_, self.sparse_matrix)
                    
                     #### Data Augmentation #####
                     if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'fqi' or self.data_aug_loc == 'both')):
@@ -537,7 +559,8 @@ class TTNAgent_online_offline_mix(object):
         if self.memory.mem_cntr < self.batch_size:
             return
 
-        self.learn_step_counter += 1
+        ## Why have two step counters?
+        # self.learn_step_counter += 1
 
         # self.q_eval.optimizer.zero_grad()
         self.q_eval.zero_grad()
@@ -545,6 +568,11 @@ class TTNAgent_online_offline_mix(object):
 
         states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction_shuffling(itr, shuffle_index)
         indices = np.arange(self.batch_size)
+
+
+        ##### Upscaling the input state with sparse matrix ##### 
+        states = T.matmul(states, self.sparse_matrix)
+        states_ = T.matmul(states_, self.sparse_matrix)
 
 
         #### Data Augmentation #####
@@ -641,6 +669,11 @@ class TTNAgent_online_offline_mix(object):
                         #     self.data_length)
                         states_all, actions_all, rewards_all, states_all_, actions_all_, dones_all = self.memory.sample_buffer_nextaction_consequtive_chunk(
                             self.data_length)
+
+
+                    ##### Upscaling the input state with sparse matrix ##### 
+                    states_all = T.matmul(states_all, self.sparse_matrix)
+                    states_all_ = T.matmul(states_all_, self.sparse_matrix)
 
 
                     #### Data Augmentation #####
@@ -996,6 +1029,11 @@ class TTNAgent_online_offline_mix(object):
             self.learn_fqi(feature, nextfeature)
 
         else:
+
+            ##### Upscaling the input state with sparse matrix ##### 
+            self.states_all_ch = T.matmul(self.states_all_ch, self.sparse_matrix)
+            self.states_all_ch_ = T.matmul(self.states_all_ch_, self.sparse_matrix)
+
             #### Data Augmentation #####
             if (self.data_aug_prob > 0.0 and (self.data_aug_loc == 'fqi' or self.data_aug_loc == 'both')):
                 # print('augmenting data')
