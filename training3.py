@@ -879,7 +879,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
             # if not os.path.isfile("feature_{}_{}_{}_{}".format(alg, en, mem_size, num_updates_pretrain) + ".pt"):
 
             #Always pre-train in offline 
-            if True or (not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")):
+            if (not os.path.isfile("{}//feature_{}_{}_{}_{}".format(output_dir_path, alg, en, mem_size, num_updates_pretrain) + ".pt")):
                 print("Pre-training")
                 if TTN:
                     loss = nn.learn()
@@ -1025,8 +1025,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
                 # Get action
                 if TTN:
-                    action = nn.choose_action(state)
-                    q_values = nn.lin_values
+                    action, q_values = nn.choose_action(state)
+                    # q_values = nn.lin_values
 
                 else:  # DQN
                     action, q_values = nn.choose_action(state)
@@ -1078,6 +1078,10 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         hyperparam_returns.append(run_returns)
         hyperparam_values.append(run_avg_episode_values)
         hyperparam_episodes.append(run_episode_length)
+
+        print(f"Repeat: {rep} AVERAGE EPISODE RETURN (run_episode_length): {np.mean(run_episode_length)}")
+        print(f"Repeat: {rep} AVERAGE EPISODE RETURN (run_avgepisode_length): {np.mean(run_avgepisode_length)}")
+        print(f"Repeat: {rep} AVERAGE EPISODE RETURN (hyperparam_episodes): {np.mean(hyperparam_episodes)}")
 
         np.save(files_name + 'hyperparam_avgreturns', hyperparam_avgreturns)
         np.save(files_name + 'hyperparam_avgepisodes', hyperparam_avgepisodes)

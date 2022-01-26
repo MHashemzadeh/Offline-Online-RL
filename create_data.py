@@ -33,6 +33,10 @@ from scipy import sparse
 import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+
+import warnings
+warnings.filterwarnings('ignore')
+
 # from numba import jit
 # import nvidia_smi
 
