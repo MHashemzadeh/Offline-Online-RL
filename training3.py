@@ -24,6 +24,7 @@ from envs.env_constructor import get_env
 from pathlib import Path
 import json
 
+from scipy import sparse
 # np_load_old = np.load
 
 # modify the default parameters of np.load
@@ -104,16 +105,20 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), 
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]),
                                     ("eps_decay_steps", [1]),
-                                    ("update_freq", [1000]),
+                                    ("update_freq", [1000]),  # default 1000
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0, 0.01, 0.05, 0.1]),
-                                    ("data_aug_loc", ['rep', 'fqi', 'both']),
+                                    ("data_aug_prob", [0.0]),  #[0.0, 0.01, 0.05, 0.1]
+                                    ("data_aug_loc", ['rep']), #['rep', 'fqi', 'both']
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.9]), #0.6 , 0.8
-                                    ("ras_beta", [1.1])   #1.2 , 1.4
+                                    ("ras_beta", [1.1]),   #1.2 , 1.4
+                                    # Input Transformations Params
+                                    ("trans_type", ['none', 'sparse', 'sparse_random']),
+                                    ("new_feat_dim", [32, 64, 128]),
+                                    ("sparse_density", [0.1, 0.5])
                                     ])
 
     with open('Online//Online_Original_hyper_sets_lstdq.json', 'w') as fp:
@@ -200,10 +205,14 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
                               ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
-                              ("ras_beta", hyper[11])   #1.2 , 1.4
+                              ("ras_beta", hyper[11]),   #1.2 , 1.4
+                              # Input Transformation Params
+                              ("trans_type", hyper[12]),
+                              ("new_feat_dim", hyper[13]),
+                              ("sparse_density", hyper[14])
                               ])
         print(f"Params: {params}")
-        print(f"Nnet params: {nnet_params}")
+        # print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
@@ -212,6 +221,23 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
+
+    # #######                        Creating Sparse matrix                      #######
+    if(params["trans_type"] == "sparse"):
+        sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
+        #making sure that original features occur atleast once in the new features
+        for row in range(sparse_matrix.shape[0]):
+            sparse_matrix[row][row] = 1.0
+
+    elif(params["trans_type"] == "sparse_random"):
+        #######                        Creating Sparse random matrix                      #######
+        sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
+        sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
+        #making sure that original features occur atleast once in the new features
+        for row in range(sparse_matrix.shape[0]):
+            sparse_matrix[row][row] = 1.0
+
+    print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -255,7 +281,7 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
         if TTN:
 
-            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
+            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params, sparse_matrix=sparse_matrix,
                                              input_dims=input_dim, num_units_rep=128, dir=data_dir, offline=offline,
                                              num_tiling=16, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, status=status)
@@ -525,7 +551,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
     # dqn:
     hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [1, 20000, 40000]),
+                                  ("eps_decay_steps", [10000, 20000, 40000]),
                                   ])
 
     ## DQN
@@ -556,16 +582,20 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), 
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]),
                                     ("eps_decay_steps", [1]),
-                                    ("update_freq", [1000]),
+                                    ("update_freq", [1000]),  # default 1000
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0, 0.01, 0.05, 0.1]),
-                                    ("data_aug_loc", ['rep', 'fqi', 'both']),
+                                    ("data_aug_prob", [0.0]),  #[0.0, 0.01, 0.05, 0.1]
+                                    ("data_aug_loc", ['rep']), #['rep', 'fqi', 'both']
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.9]), #0.6 , 0.8
-                                    ("ras_beta", [1.1])   #1.2 , 1.4
+                                    ("ras_beta", [1.1]),   #1.2 , 1.4
+                                    # Input Transformations Params
+                                    ("trans_type", ['none', 'sparse', 'sparse_random']),
+                                    ("new_feat_dim", [32, 64, 128]),
+                                    ("sparse_density", [0.1, 0.5])
                                     ])
 
     with open('Offline-online//Offline_online_Original_hyper_sets_lstdq.json', 'w') as fp:
@@ -581,7 +611,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
 
-    # Removing redundant experiments for data_aug_prob = 0
+    # # Removing redundant experiments for data_aug_prob = 0
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
@@ -653,16 +683,39 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                               ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
-                              ("ras_beta", hyper[11])   #1.2 , 1.4
+                              ("ras_beta", hyper[11]),   #1.2 , 1.4
+                              # Input Transformation Params
+                              ("trans_type", hyper[12]),
+                              ("new_feat_dim", hyper[13]),
+                              ("sparse_density", hyper[14])
                               ])
         print(f"Params: {params}")
-        print(f"Nnet params: {nnet_params}")
+        # print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
                               ("eps_decay_steps", hyper[1])])
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
+
+
+     # #######                        Creating Sparse matrix                      #######
+    if(params["trans_type"] == "sparse"):
+        sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
+        #making sure that original features occur atleast once in the new features
+        for row in range(sparse_matrix.shape[0]):
+            sparse_matrix[row][row] = 1.0
+
+    elif(params["trans_type"] == "sparse_random"):
+        #######                        Creating Sparse random matrix                      #######
+        sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
+        sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
+        #making sure that original features occur atleast once in the new features
+        for row in range(sparse_matrix.shape[0]):
+            sparse_matrix[row][row] = 1.0
+
+    print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
+
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -706,7 +759,7 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
 
         if TTN:
 
-            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
+            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params, sparse_matrix=sparse_matrix,
                                              input_dims=input_dim, num_units_rep=128, dir=data_dir, offline=offline,
                                              num_tiling=16, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, status=status)
@@ -796,9 +849,9 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
                 #     loss1= loss
                 #     t += 1
 
-                batch_size = 64
+                # batch_size = 64
                 for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
-                    num_iteration_feature = int(mem_size / batch_size)
+                    num_iteration_feature = int(mem_size / nnet_params['batch_size'])
                     shuffle_index = np.arange(nnet_params['replay_memory_size'])
                     np.random.shuffle(shuffle_index)
 
@@ -1058,16 +1111,20 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), 
                                     ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]),
                                     ("eps_decay_steps", [1]),
-                                    ("update_freq", [1000]),
+                                    ("update_freq", [1000]),  # default 1000
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
                                     # Data Augmentation Params
                                     ("data_aug_type", ['ras']),
-                                    ("data_aug_prob", [0.0, 0.01, 0.05, 0.1]),
-                                    ("data_aug_loc", ['rep', 'fqi', 'both']),
+                                    ("data_aug_prob", [0.0]),  #[0.0, 0.01, 0.05, 0.1]
+                                    ("data_aug_loc", ['rep']), #['rep', 'fqi', 'both']
                                     ("random_shift_pad", [4]),
                                     ("ras_alpha", [0.9]), #0.6 , 0.8
-                                    ("ras_beta", [1.1])   #1.2 , 1.4
+                                    ("ras_beta", [1.1]),   #1.2 , 1.4
+                                    # Input Transformations Params
+                                    ("trans_type", ['none', 'sparse', 'sparse_random']),
+                                    ("new_feat_dim", [32, 64, 128]),
+                                    ("sparse_density", [0.1, 0.5])
                                     ])
 
     with open('Offline//Offline_Original_hyper_sets_lstdq.json', 'w') as fp:
@@ -1084,7 +1141,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
 
-    # Removing redundant experiments for data_aug_prob = 0
+    # # Removing redundant experiments for data_aug_prob = 0
     hyperparams_filtered = []
     count = 0
     for i in range(len(hyperparams)):
@@ -1155,17 +1212,39 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
                               ("data_aug_loc", hyper[8]),
                               ("random_shift_pad", hyper[9]),
                               ("ras_alpha", hyper[10]), #0.6 , 0.8
-                              ("ras_beta", hyper[11])   #1.2 , 1.4
+                              ("ras_beta", hyper[11]),   #1.2 , 1.4
+                              # Input Transformation Params
+                              ("trans_type", hyper[12]),
+                              ("new_feat_dim", hyper[13]),
+                              ("sparse_density", hyper[14])
                               ])
 
         print(f"Parameters: {params}")
-        print(f"Nnet params: {nnet_params}")
+        # print(f"Nnet params: {nnet_params}")
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
                               ("eps_decay_steps", hyper[1])])
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
+
+    # #######                        Creating Sparse matrix                      #######
+    if(params["trans_type"] == "sparse"):
+        sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
+        #making sure that original features occur atleast once in the new features
+        for row in range(sparse_matrix.shape[0]):
+            sparse_matrix[row][row] = 1.0
+
+    elif(params["trans_type"] == "sparse_random"):
+        #######                        Creating Sparse random matrix                      #######
+        sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
+        sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
+        #making sure that original features occur atleast once in the new features
+        for row in range(sparse_matrix.shape[0]):
+            sparse_matrix[row][row] = 1.0
+
+    print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
+
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -1209,7 +1288,7 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
         if TTN:
 
-            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
+            nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params, sparse_matrix=sparse_matrix,
                                              input_dims=input_dim, num_units_rep=128, dir=data_dir, offline=offline,
                                              num_tiling=16, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, status=status)
@@ -1299,9 +1378,9 @@ def train_offline(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_
 
                 # How do you control number of fqi updates in pre-train offline?
 
-                batch_size = 64
+                # batch_size = 64
                 for j in range(num_updates_pretrain): #num_updates_pretrain = num_epoch = 100
-                    num_iteration_feature = int(mem_size / batch_size)
+                    num_iteration_feature = int(mem_size / nnet_params['batch_size'])
                     shuffle_index = np.arange(nnet_params['replay_memory_size'])
                     np.random.shuffle(shuffle_index)
 
