@@ -21,11 +21,22 @@ from replay_memory import ReplayBuffer
 from training3 import train_offline_online, train_online, train_offline
 import training3
 np_load_old = np.load
-
+from utils.env_utils import process_state_constructor
+from ple.games.catcher import Catcher
+from ple import PLE
 # modify the default parameters of np.load
 np.load = lambda *a, **k: np_load_old(*a, allow_pickle=True)
 # np.load = lambda *a,**k: np_load_old(*a,**k,allow_pickle=True)
 import gym
+from scipy import sparse
+
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+
+import warnings
+warnings.filterwarnings('ignore')
+
 # from numba import jit
 # import nvidia_smi
 
@@ -134,20 +145,34 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
     #     p = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards,
     #             rng=rand_seed)
 
+    elif en == "catcher":
+        game = Catcher(init_lives=1)
+        process_state = process_state_constructor(en)
+        env = PLE(game, fps=30, state_preprocessor=process_state, display_screen=False, reward_values=ple_rewards, rng=rand_seed)
+        input_dim = 4
+        num_act = 3
+
 
     ########## Setting the random seed ###########
-    env.seed(rand_seed)
+    if en != "catcher":
+        env.seed(rand_seed)
     T.manual_seed(rand_seed)
     np.random.seed(rand_seed)
     ##############################################
 
 
+    # ########## Setting the random seed ###########
+    # env.seed(rand_seed)
+    # T.manual_seed(rand_seed)
+    # np.random.seed(rand_seed)
+    # ##############################################
+
+
     ########### FIXME: This part should be put in seperate files like config files #############
 
-    # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [10000, 20000, 40000]),
-                                  ])
+    # dqn
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.5, -3.75, -4.0])),
+                                  ("loss_combinations", [(0.1, 0.9), (0.9, 0.1), (0.5, 0.5), (1, 1), (0, 1)])])
 
     ## DQN
     q_nnet_params = {"update_fqi_steps": 50000,
@@ -171,23 +196,25 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                    "replay_init_size": 5000,
                    "batch_size": 32,
                    "fqi_reg_type": "prev",  # "l2" or "prev"
-
-                    # Data Augmentation Params
-                   "data_aug_type": 'ras',
-                   "data_aug_prob": 0.0,
-                   "random_shift_pad": 4,
-                   "ras_alpha": 0.6,
-                   "ras_beta": 1.2
                    }
     ## TTN
-    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-4.0])),  # [-2.0, -2.5, -3.0, -3.5, -4.0]
-                                    ("reg_A",
-                                     [10, 20, 30, 50, 70, 100, 2, 3, 5, 8, 1, 0, 0.01, 0.002, 0.0003, 0.001, 0.05]),
-                                    # [0.0, -1.0, -2.0, -3.0] can also do reg towards previous weights
+    hyper_sets_lstdq = OrderedDict([("nn_lr", np.power(10, [-3.0, -3.5, -4.0]).tolist()), 
+                                    ("reg_A", [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]),
                                     ("eps_decay_steps", [1]),
-                                    ("update_freq", [1000]),
+                                    ("update_freq", [1000]),  # default 1000
                                     ("data_length", [data_length]),
                                     ("fqi_rep", [fqi_rep]),
+                                    # Data Augmentation Params
+                                    ("data_aug_type", ['ras']),
+                                    ("data_aug_prob", [0.0]),  #[0.0, 0.01, 0.05, 0.1]
+                                    ("data_aug_loc", ['rep']), #['rep', 'fqi', 'both']
+                                    ("random_shift_pad", [4]),
+                                    ("ras_alpha", [0.9]), #0.6 , 0.8
+                                    ("ras_beta", [1.1]),   #1.2 , 1.4
+                                    # Input Transformations Params
+                                    ("trans_type", ['none', 'sparse', 'sparse_random']),
+                                    ("new_feat_dim", [32, 64, 128]),
+                                    ("sparse_density", [0.1, 0.5])
                                     ])
 
     #################################################################################################
@@ -249,15 +276,49 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                               ("update_freq", hyper[3]),
                               ("data_length", hyper[4]),
                               ("fqi_rep", hyper[5]),
+                              # Data Augmentation Params
+                              ("data_aug_type", hyper[6]),
+                              ("data_aug_prob", hyper[7]),
+                              ("data_aug_loc", hyper[8]),
+                              ("random_shift_pad", hyper[9]),
+                              ("ras_alpha", hyper[10]), #0.6 , 0.8
+                              ("ras_beta", hyper[11]),   #1.2 , 1.4
+                              # Input Transformation Params
+                              ("trans_type", hyper[12]),
+                              ("new_feat_dim", hyper[13]),
+                              ("sparse_density", hyper[14])
                               ])
+
+        # print(f"Params: {params}")
+        # print(f"Nnet params: {nnet_params} ")
     
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
-                              ("eps_decay_steps", hyper[1])])
+                                ("loss_combinations", hyper[1])])
 
     if TTN:
 
-        nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params,
+        # #######                        Creating Identity matrix                      #######
+        if(params["trans_type"] == "none"):
+            sparse_matrix = np.identity(input_dim)
+        # #######                        Creating Sparse matrix                      #######
+        elif(params["trans_type"] == "sparse"):
+            sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
+            #making sure that original features occur atleast once in the new features
+            for row in range(sparse_matrix.shape[0]):
+                sparse_matrix[row][row] = 1.0
+
+        elif(params["trans_type"] == "sparse_random"):
+            #######                        Creating Sparse random matrix                      #######
+            sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
+            sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
+            #making sure that original features occur atleast once in the new features
+            for row in range(sparse_matrix.shape[0]):
+                sparse_matrix[row][row] = 1.0
+
+        print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
+
+        nn = TTNAgent_online_offline_mix(gamma, nnet_params=nnet_params, other_params=params, sparse_matrix=sparse_matrix,
                                              input_dims=input_dim, num_units_rep=128, dir=dir, offline=offline,
                                              num_tiling=16, num_tile=4, method_sarsa=method_sarsa,
                                              tilecoding=tilecoding, replace_target_cnt=replace_target_cnt, target_separate=target_separate)
@@ -282,13 +343,22 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                 prev_state = None
                 prev_action = None
                 done = 0
-                state_unnormal = env.reset()
+
+                if en != "catcher":
+                    state_unnormal = env.reset()
+                else:
+                    state_unnormal = env.reset_game()
+
                 state = process_state(state_unnormal)
                 # populate the replay buffer
                 while nn.memory.mem_cntr < mem_size: #nnet_params["replay_init_size"]:
 
                     if done:
-                        state_unnormal = env.reset()
+                        if en != "catcher":
+                            state_unnormal = env.reset()
+                        else:
+                            state_unnormal = env.reset_game()
+
                         state = process_state(state_unnormal)
 
                     # get action
@@ -330,7 +400,11 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
             ctr = 0
             ch = 0
 
-            state_unnormal = env.reset()
+            if en != "catcher":
+                state_unnormal = env.reset()
+            else:
+                state_unnormal = env.reset_game()
+
             state = process_state(state_unnormal)
             i = 0
 
@@ -364,7 +438,11 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
                     i = 0
                     episodes += 1
                     episode_length = 0
-                    state_unnormal = env.reset()
+                    if en != "catcher":
+                        state_unnormal = env.reset()
+                    else:
+                        state_unnormal = env.reset_game()
+                        
                     state = process_state(state_unnormal)
 
 
@@ -453,6 +531,8 @@ def main(alg_type, hyper_num, data_length_num, mem_size, num_rep, offline, fqi_r
 
     if not os.path.isfile(files_name+".npy"):
         files_name = generate_data()
+    else:
+        print(f"Data already exists at: {files_name}.npy")
 
 
     return files_name+'.npy'
@@ -470,16 +550,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     ## for data generating
-    parser.add_argument('--algo', type=str, default='fqi')
-    parser.add_argument('--hyper_num', type=int, default=15)
+    parser.add_argument('--algo', type=str, default='dqn')
+    parser.add_argument('--hyper_num', type=int, default=0)
     parser.add_argument('--data_length_num', type=int, default=0)
-    parser.add_argument('--mem_size', type=int, default=10000)
+    parser.add_argument('--mem_size', type=int, default=50000) #using 50K for offline, online and offline-online experiments
     parser.add_argument('--num_rep', type=int, default=1)
     parser.add_argument('--offline', type=bool, default=False)
     parser.add_argument('--fqi_rep_num', type=int, default=0)
     parser.add_argument('--num_step_ratio_mem', type=int, default=120000)
-    parser.add_argument('--en', type=str, default='Mountaincar')  # set name of the environment here e.g. Mountaincar,
-    parser.add_argument('--fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--en', type=str, default='cartpole')  # set name of the environment here e.g. Mountaincar,
+    parser.add_argument('--fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--method_sarsa', type=str, default='expected-sarsa')  # expected-sarsa, q-learning
 
 
@@ -500,13 +580,13 @@ if __name__ == "__main__":
     ##########################################################
     ##########################################################
 
-    parser.add_argument('--offline_online_training', type=str, default="offline_online")  # set type of your validation: offline or online or offline_online
+    parser.add_argument('--offline_online_training', type=str, default=None)  # set type of your validation: offline or online or offline_online
 
     ############################################################
     ############################################################
     ## for validation:
-    parser.add_argument('--tr_alg_type', type=str, default='fqi')
-    parser.add_argument('--tr_hyper_num', type=int, default=12) #cart =10, l2, mc=15, 13, prev - acr=13, l2
+    parser.add_argument('--tr_alg_type', type=str, default='dqn')
+    parser.add_argument('--tr_hyper_num', type=int, default=0) #cart =10, l2, mc=15, 13, prev - acr=13, l2
     parser.add_argument('--tr_data_length_num', type=int, default=0)
     parser.add_argument('--tr_num_rep', type=int, default=10)
     parser.add_argument('--tr_fqi_rep_num', type=int, default=0)
@@ -517,7 +597,7 @@ if __name__ == "__main__":
     parser.add_argument('--tr_num_iteration', type=int, default=1)
     parser.add_argument('--tr_num_epi_per_itr', type=int, default=200)
     parser.add_argument('--tr_num_updates', type=int, default=2)
-    parser.add_argument('--tr_fqi_reg_type', type=str, default='prev')  # l2, prev :--> type of regularizer for fqi
+    parser.add_argument('--tr_fqi_reg_type', type=str, default='l2')  # l2, prev :--> type of regularizer for fqi
     parser.add_argument('--tr_epsilon_stop_training', type=float, default=10e-7)
     parser.add_argument('--tr_status', type=float, default=10e-7)
     parser.add_argument('--tr_offline', type=bool, default=False) # this should be False only for online setting

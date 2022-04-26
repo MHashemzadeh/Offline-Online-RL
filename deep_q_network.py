@@ -17,18 +17,20 @@ class DeepQNetwork(nn.Module):
         self.fc2 = nn.Linear(number_unit, number_unit, bias=True)
         self.fc3 = nn.Linear(number_unit, number_unit, bias=True)  # the representation layer
         self.fc4 = nn.Linear(number_unit, n_actions, bias=True)  # the prediction layer
+        self.fc5 = nn.Linear(number_unit, n_actions, bias=True)
 
         nn.init.xavier_uniform(self.fc1.weight)
         nn.init.xavier_uniform(self.fc2.weight)
         nn.init.xavier_uniform(self.fc3.weight)
         nn.init.xavier_uniform(self.fc4.weight)
+        nn.init.xavier_uniform(self.fc5.weight)
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         # optim.RMSprop(self.parameters(), lr=lr)
 
         self.loss = nn.MSELoss()
         # self.device = T.cuda.set_device(T.device('cuda:0'))
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.device = T.device('cpu') #'cuda:0' if T.cuda.is_available() else 
         self.to(self.device)
 
     # @jit(target='cuda:0')
@@ -43,8 +45,9 @@ class DeepQNetwork(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))  # + T.zeros(1, self.input_dims)  # do we need to add bias
         self.predictions = self.fc4(x)
+        self.auxiliary_preds = self.fc5(x)
 
-        return self.predictions
+        return self.predictions, self.auxiliary_preds
 
     # @jit(target='cuda')
     def save_checkpoint(self):

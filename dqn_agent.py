@@ -7,18 +7,25 @@ from numba import jit
 
 
 class DQNAgent(object):
-    def __init__(self, gamma, nnet_params, other_params, input_dims=4, dir=None, offline=False, status="online"):
+    def __init__(self, gamma, nnet_params, other_params, input_dims=4, dir=None, offline=False, status="online", replace_target=True):
 
         self.gamma = gamma
         self.eps_init = nnet_params['eps_init']
         self.epsilon = 0.01 #nnet_params['eps_init']
         self.eps_final = nnet_params['eps_final']
-        self.eps_decay_steps = other_params['eps_decay_steps']
+        # self.eps_decay_steps = other_params['eps_decay_steps']
         self.n_actions = nnet_params['num_actions']
         self.batch_size = nnet_params['batch_size']
         self.lr = other_params['nn_lr']
         self.global_step = 5.5
+
+        #Target net params
         self.replace_target_cnt = nnet_params['update_target_net_steps']
+        self.replace_target = replace_target
+
+        # loss balancing weights
+        self.q_loss_lambda, self.smtde_loss_lambda = other_params["loss_combinations"]
+
         self.input_dims = input_dims
         self.algo = 'dgn'
         self.env_name = 'catcher'
@@ -41,16 +48,6 @@ class DQNAgent(object):
                                     input_dims=self.input_dims,
                                     chkpt_dir=self.chkpt_dir, number_unit=128)
 
-    # def choose_action(self, observation):
-    #     state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
-    #     actions = self.q_eval.forward(state)
-    #     if np.random.random() > self.epsilon:
-    #         action = T.argmax(actions).item()
-    #         actions.detach().numpy()
-    #     else:
-    #         action = np.random.choice(self.action_space)
-    #
-    #     return action, actions.detach()
 
     # @jit(target='cuda')
     def choose_action(self, observation):
@@ -63,7 +60,7 @@ class DQNAgent(object):
 
         with T.no_grad():
             state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
-            actions = self.q_eval.forward(state)
+            actions = self.q_eval.forward(state)[0]
             actions.detach()
         if np.random.random() > epsilon:
             action = T.argmax(actions).item()
@@ -89,8 +86,22 @@ class DQNAgent(object):
 
         return states, actions, rewards, states_, dones
 
+    def sample_memory_nextaction(self):
+        state, action, reward, new_state, new_action, done = \
+            self.memory.sample_buffer_nextaction(self.batch_size)
+
+        states = T.tensor(state).to(self.q_eval.device)
+        rewards = T.tensor(reward).to(self.q_eval.device)
+        dones = T.tensor(done).to(self.q_eval.device)
+        actions = T.tensor(action).to(self.q_eval.device)
+        states_ = T.tensor(new_state).to(self.q_eval.device)
+        actions_ = T.tensor(new_action).to(self.q_eval.device)
+
+        return states, actions, rewards, states_, actions_, dones
+    
     # @jit(target='cuda')
     def replace_target_network(self):
+        # print(f"Replace Target Network")
         if self.learn_step_counter % self.replace_target_cnt == 0:
             self.q_next.load_state_dict(self.q_eval.state_dict())
 
@@ -130,67 +141,95 @@ class DQNAgent(object):
         if self.memory.mem_cntr < self.batch_size:
             return
 
-        # print('Using device:', self.q_eval.device)
-        # print()
-
-        # Additional Info when using cuda
-        if self.q_eval.device.type == 'cuda':
-            print(T.cuda.get_device_name(0))
-            print('Memory Usage:')
-            print('Allocated:', round(T.cuda.memory_allocated(0) / 1024 ** 3, 1), 'GB')
-            print('Cached:   ', round(T.cuda.memory_cached(0) / 1024 ** 3, 1), 'GB')
+        if(self.learn_step_counter % 1000 == 0):
+            print(f"DQN learn: {self.learn_step_counter}")
 
         self.q_eval.optimizer.zero_grad()
 
-        self.replace_target_network()
-
-        states, actions, rewards, states_, dones = self.sample_memory()
+        states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction()
         indices = np.arange(self.batch_size)
 
-        q_pred = self.q_eval.forward(states)[indices, actions]
-        q_next = self.q_next.forward(states_).max(dim=1)[0]
+        q_pred, aux_q_pred = self.q_eval.forward(states)
+        q_pred = q_pred[indices, actions]
+        aux_q_pred = aux_q_pred[indices, actions]
+
+        with T.no_grad():
+            if self.replace_target:
+                self.replace_target_network()
+                q_next = self.q_next.forward(states_)[0].max(dim=1)[0]
+            else:
+                q_next = self.q_eval.forward(states_)[0].max(dim=1)[0]
 
         q_next[dones] = 0.0
         q_target = rewards + self.gamma*q_next
 
-        loss = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
+        loss_q = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
+
+        ############ SEMI-MSTDE Aux Loss ############
+        with T.no_grad():
+            q_next, aux_q_pred_next = self.q_eval.forward(states_)
+            aux_q_pred_next = aux_q_pred_next[indices, actions_]
+            aux_q_pred_next[dones] = 0.0
+
+            aux_q_target = rewards + self.gamma * aux_q_pred_next
+
+        loss_smstde = self.q_eval.loss(aux_q_pred, aux_q_target).to(self.q_eval.device)
+        
+
+        ########### Adding Loss ##########
+        loss = self.q_loss_lambda * loss_q + self.smtde_loss_lambda * loss_smstde
         loss.backward()
         self.q_eval.optimizer.step()
         self.learn_step_counter += 1
 
         self.decrement_epsilon()
 
+
         return loss
 
 
     def learn_nn_feature(self, itr, shuffle_index):
+        # offline part
+        # this shuffles while sampling
         if self.memory.mem_cntr < self.batch_size:
             return
 
-        # print('Using device:', self.q_eval.device)
-        # print()
-
-        # Additional Info when using cuda
-        if self.q_eval.device.type == 'cuda':
-            print(T.cuda.get_device_name(0))
-            print('Memory Usage:')
-            print('Allocated:', round(T.cuda.memory_allocated(0) / 1024 ** 3, 1), 'GB')
-            print('Cached:   ', round(T.cuda.memory_cached(0) / 1024 ** 3, 1), 'GB')
+        if(self.learn_step_counter % 1000 == 0):
+            print(f"DQN learn_nn_feature: {self.learn_step_counter}")
 
         self.q_eval.optimizer.zero_grad()
-
-        self.replace_target_network()
 
         states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction_shuffling(itr, shuffle_index)
         indices = np.arange(self.batch_size)
 
-        q_pred = self.q_eval.forward(states)[indices, actions]
-        q_next = self.q_next.forward(states_).max(dim=1)[0]
+        q_pred = self.q_eval.forward(states)[0][indices, actions]
+
+        with T.no_grad():
+            if self.replace_target:
+                self.replace_target_network()
+                q_next = self.q_next.forward(states_)[0].max(dim=1)[0]
+            else:
+                q_next = self.q_eval.forward(states_)[0].max(dim=1)[0]
 
         q_next[dones] = 0.0
         q_target = rewards + self.gamma*q_next
 
-        loss = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
+        loss_q = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
+
+
+        ############ SEMI-MSTDE Aux Loss ############
+        with T.no_grad():
+            q_next = self.q_eval.forward(states_)[0][indices, actions_]
+            q_next[dones] = 0.0
+
+            q_target = rewards + self.gamma * q_next
+
+        loss_smstde = self.q_eval.loss(q_pred, q_target).to(self.q_eval.device)
+
+
+        ########### Adding Loss ##########
+        loss = self.q_loss_lambda * loss_q + self.smtde_loss_lambda * loss_smstde
+
         loss.backward()
         self.q_eval.optimizer.step()
         self.learn_step_counter += 1
