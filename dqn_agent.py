@@ -181,10 +181,7 @@ class DQNAgent(object):
         loss.backward()
         self.q_eval.optimizer.step()
         self.learn_step_counter += 1
-
         self.decrement_epsilon()
-
-
         return loss
 
 
@@ -218,7 +215,6 @@ class DQNAgent(object):
 
         loss_q = self.q_eval.loss(q_target, q_pred).to(self.q_eval.device)
 
-
         ############ SEMI-MSTDE Aux Loss ############
         with T.no_grad():
             q_next, aux_q_pred_next = self.q_eval.forward(states_)
@@ -240,6 +236,3 @@ class DQNAgent(object):
         self.decrement_epsilon()
 
         return loss
-
-
-

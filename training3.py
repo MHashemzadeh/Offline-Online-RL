@@ -78,9 +78,8 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     # np.random.seed(rand_seed)
 
     # dqn:
-    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.25, -3.5, -3.75, -4.0, -4.25])),
-                                  ("eps_decay_steps", [1, 20000, 40000]),
-                                  ])
+    hyper_sets_DQN = OrderedDict([("nn_lr", np.power(10, [-3.5, -3.75, -4.0])),
+                                  ("loss_combinations", [(0.1, 0.9), (0.9, 0.1), (0.5, 0.5), (1, 1), (0, 1)])])
 
     ## DQN
     q_nnet_params = {"update_fqi_steps": 50000,
@@ -140,23 +139,27 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
 
-    # Removing redundant experiments for data_aug_prob = 0
-    hyperparams_filtered = []
-    count = 0
-    for i in range(len(hyperparams)):
-        if(i%18 not in [1,2,3,4,5]):
-            hyperparams_filtered.append(hyperparams[i])
-            count += 1
+    for ix in hyperparams:
+        print(f"Hyper: {ix}")
 
-    print(f"Number of Hyperparams: {count}")
-    hyperparams = hyperparams_filtered
+    if TTN:
+        # Removing redundant experiments for data_aug_prob = 0
+        hyperparams_filtered = []
+        count = 0
+        for i in range(len(hyperparams)):
+            if(i%18 not in [1,2,3,4,5]):
+                hyperparams_filtered.append(hyperparams[i])
+                count += 1
 
-    # write to a file to maintain the indexes
-    with open("Online//Online-sweep-parameters.txt", "w") as fp:
-        for ix in range(len(hyperparams)):
-            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
-            fp.write(to_write + "\n")
-    fp.close()
+        print(f"Number of Hyperparams: {count}")
+        hyperparams = hyperparams_filtered
+
+        # write to a file to maintain the indexes
+        with open("Online//Online-sweep-parameters.txt", "w") as fp:
+            for ix in range(len(hyperparams)):
+                to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
+                fp.write(to_write + "\n")
+        fp.close()
 
     times = []
     start_time = time.perf_counter()
@@ -221,33 +224,34 @@ def train_online(data_dir, alg_type, hyper_num, data_length_num, mem_size, num_r
 
     elif alg in ("dqn"):
         params = OrderedDict([("nn_lr", hyper[0]),
-                              ("eps_decay_steps", hyper[1])])
+                              ("loss_combinations", hyper[1])])
 
 
-
+    print(f"DQN Params: {params}")
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
 
-    # #######                        Creating Identity matrix                      #######
-    if(params["trans_type"] == "none"):
-        sparse_matrix = np.identity(input_dim)
+    if TTN:
+        # #######                        Creating Identity matrix                      #######
+        if(params["trans_type"] == "none"):
+            sparse_matrix = np.identity(input_dim)
 
-    # #######                        Creating Sparse matrix                      #######
-    elif(params["trans_type"] == "sparse"):
-        sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
-        #making sure that original features occur atleast once in the new features
-        for row in range(sparse_matrix.shape[0]):
-            sparse_matrix[row][row] = 1.0
+        # #######                        Creating Sparse matrix                      #######
+        elif(params["trans_type"] == "sparse"):
+            sparse_matrix = np.random.choice(2, size=(input_dim, params["new_feat_dim"]), p=[1 - params["sparse_density"], params["sparse_density"]])
+            #making sure that original features occur atleast once in the new features
+            for row in range(sparse_matrix.shape[0]):
+                sparse_matrix[row][row] = 1.0
 
-    #######                        Creating Sparse random matrix                      #######
-    elif(params["trans_type"] == "sparse_random"):
-        
-        sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
-        sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
-        #making sure that original features occur atleast once in the new features
-        for row in range(sparse_matrix.shape[0]):
-            sparse_matrix[row][row] = 1.0
+        #######                        Creating Sparse random matrix                      #######
+        elif(params["trans_type"] == "sparse_random"):
+            
+            sparse_matrix = np.array(sparse.random(input_dim, params["new_feat_dim"], density=params["sparse_density"], data_rvs=np.random.randn, dtype=np.float32).todense())
+            sparse_matrix = (0.35 * sparse_matrix) / (np.sqrt(input_dim))
+            #making sure that original features occur atleast once in the new features
+            for row in range(sparse_matrix.shape[0]):
+                sparse_matrix[row][row] = 1.0
 
-    print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
+        print(f"sparse_matrix: {sparse_matrix} , sparse_matrix.shape: {sparse_matrix.shape}")
 
     hyperparam_returns = []
     hyperparam_values = []
@@ -645,18 +649,23 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         hyper_sets = hyper_sets_lstdq
         TTN = True
     elif alg == "dqn":
+        print(f"DQN")
         hyper_sets = hyper_sets_DQN
         TTN = False
     #
     hyperparams_all = list(itertools.product(*list(hyper_sets.values())))
     hyperparams = hyperparams_all
+    
+    for ix in hyperparams:
+        print(f"Hyper: {ix}")
 
-    # write to a file to maintain the indexes
-    with open("Offline-online//Offline-online-sweep-parameters.txt", "w") as fp:
-        for ix in range(len(hyperparams)):
-            to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
-            fp.write(to_write + "\n")
-    fp.close()
+    if TTN:
+        # write to a file to maintain the indexes
+        with open("Offline-online//Offline-online-sweep-parameters.txt", "w") as fp:
+            for ix in range(len(hyperparams)):
+                to_write = str(ix) + " " + '-'.join([str(x) for x in hyperparams[ix]])
+                fp.write(to_write + "\n")
+        fp.close()
     
     
     times = []
@@ -725,7 +734,8 @@ def train_offline_online(data_dir, alg_type, hyper_num, data_length_num, mem_siz
         params = OrderedDict([("nn_lr", hyper[0]), ("loss_combinations", hyper[1])])
 
     # saved_state_list_all = np.load(starting_state_path)  # np.load starting states
-
+    print(f"DQN Params: {params}")
+    
     if TTN:
         # #######                        Creating Identity matrix                      #######
         if(params["trans_type"] == "none"):
