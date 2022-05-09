@@ -202,7 +202,9 @@ class DQNAgent(object):
         states, actions, rewards, states_, actions_, dones = self.sample_memory_nextaction_shuffling(itr, shuffle_index)
         indices = np.arange(self.batch_size)
 
-        q_pred = self.q_eval.forward(states)[0][indices, actions]
+        q_pred, aux_q_pred = self.q_eval.forward(states)
+        q_pred = q_pred[indices, actions]
+        aux_q_pred = aux_q_pred[indices, actions]
 
         with T.no_grad():
             if self.replace_target:
@@ -219,12 +221,13 @@ class DQNAgent(object):
 
         ############ SEMI-MSTDE Aux Loss ############
         with T.no_grad():
-            q_next = self.q_eval.forward(states_)[0][indices, actions_]
-            q_next[dones] = 0.0
+            q_next, aux_q_pred_next = self.q_eval.forward(states_)
+            aux_q_pred_next = aux_q_pred_next[indices, actions_]
+            aux_q_pred_next[dones] = 0.0
 
-            q_target = rewards + self.gamma * q_next
+            aux_q_target = rewards + self.gamma * aux_q_pred_next
 
-        loss_smstde = self.q_eval.loss(q_pred, q_target).to(self.q_eval.device)
+        loss_smstde = self.q_eval.loss(aux_q_pred, aux_q_target).to(self.q_eval.device)
 
 
         ########### Adding Loss ##########
