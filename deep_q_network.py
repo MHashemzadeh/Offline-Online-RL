@@ -40,6 +40,8 @@ class DeepQNetwork(nn.Module):
         # self.device = T.cuda.set_device(T.device('cuda:0'))
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
+        
+        self.conv_out_size = n_actions
 
     # As per implementation instructions according to pytorch, the forward function should be overwritten by all
     # subclasses
