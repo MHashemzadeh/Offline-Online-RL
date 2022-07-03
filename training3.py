@@ -1,6 +1,6 @@
 # import gym
 import numpy as np
-from dqn_agent import DQNAgent
+from dqn_agent_atc import DQNAgent
 # from ttn_agent_online import TTNAgent_online
 from ttn_agent_online_tc import TTNAgent_online_tc
 from mix_ttn_agent_online_offline import TTNAgent_online_offline_mix
